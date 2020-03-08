@@ -1,33 +1,197 @@
 package com.geekbrains.brains.cloud.client;
 
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.*;
 
-import java.net.URL;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.file.*;
+import java.util.*;
 
+public class Controller {
+    final int TRANSFER_FILE_CODE = 15;
+    final int RECEIVE_FILE_CODE = 16;
+    final int GET_STORAGE_CODE = 17;
+    final int EXIT_CODE = 18;
+    final int DELETE_FILE_CODE = 19;
+    final String IP_ADRESS = "localhost";
+    final int PORT = 8189;
+    Scanner scanner;
+    String input;
+    SocketChannel socketChannel;
+    FileChannel fileChannel;
+    String fileName;
+    Path file;
+    long fileSize;
+    ByteBuffer byteBuffer;
+    boolean authorized;
 
-public class Controller implements Initializable {
-    @FXML
-    ListView<String> clientFiles, serverFiles;
-
-    @FXML
-    Label label;
-
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        clientFiles.getItems().addAll("C_File 1", "C_File 2", "C_File 3");
-        serverFiles.getItems().addAll("S_File 1", "S_File 2", "S_File 3");
+    public Controller() {
+        scanner = new Scanner(System.in);
+        byteBuffer = ByteBuffer.allocate(1024);
+        startClient();
     }
 
-    public void btnClickSelectedClientFile(ActionEvent actionEvent) {
-        label.setText(clientFiles.getSelectionModel().getSelectedItem());
+    public void startClient() {
+        try {
+            socketChannel = SocketChannel.open();
+            socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
+            while (true) {
+                if (!authorized)
+                    login();
+                System.out.println("Enter command:");
+                input = scanner.next();
+                if (input.equals("end"))
+                    break;
+                switch (input) {
+                    case "t":
+                        transferFile();
+                        break;
+                    case "r":
+                        receiveFile();
+                        break;
+                    case "s":
+                        getStorage();
+                        break;
+                    case "d":
+                        deleteFile();
+                        break;
+                    case "e":
+                        byteBuffer.put((byte) EXIT_CODE);
+                        byteBuffer.flip();
+                        socketChannel.write(byteBuffer);
+                        authorized = false;
+                        byteBuffer.clear();
+                        break;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public void btnClickSelectedServerFile(ActionEvent actionEvent) {
-        label.setText(serverFiles.getSelectionModel().getSelectedItem());
+
+    private void login() throws IOException {
+        while (true) {
+            System.out.println("Enter name:");
+            input = scanner.next();
+            byte[] bytes = input.getBytes();
+            byteBuffer.put((byte) bytes.length);
+            byteBuffer.put(bytes);
+            System.out.println("Enter password:");
+            input = scanner.next();
+            bytes = input.getBytes();
+            byteBuffer.put((byte) bytes.length);
+            byteBuffer.put(bytes);
+            byteBuffer.flip();
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+            byte b = byteBuffer.get();
+            byteBuffer.clear();
+            if (b == 1) {
+                System.out.println("Password accepted");
+                authorized = true;
+                break;
+            } else {
+                System.out.println("login or password incorrect");
+            }
+        }
+    }
+
+    public void transferFile() throws IOException {
+        System.out.println("Enter file name: ");
+        input = scanner.next();
+        file = Paths.get(input);
+        fileChannel = FileChannel.open(file);
+        fileSize = Files.size(file);
+        fileName = file.getFileName().toString();
+        sendMetaInf();
+        socketChannel.read(byteBuffer);
+        System.out.println("transferring file: " + input);
+        System.out.println("start transferring");
+        byteBuffer.clear();
+        int n = fileChannel.read(byteBuffer);
+        do {
+            byteBuffer.flip();
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            n = fileChannel.read(byteBuffer);
+        }
+        while (n > -1);
+        byteBuffer.clear();
+        System.out.println("finished");
+        fileChannel.close();
+    }
+
+    private void sendMetaInf() throws IOException {
+        byte[] filenameBytes = fileName.getBytes();
+        System.out.println(byteBuffer);
+        byteBuffer.put((byte) TRANSFER_FILE_CODE);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        byteBuffer.putLong(fileSize);
+        System.out.println("filesize: " + fileSize);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+    }
+
+    public void receiveFile() throws IOException {
+        System.out.println("Enter file name: ");
+        input = scanner.next();
+        System.out.println("receiving file: " + input);
+        file = Paths.get("brains-cloud-client/" + input);
+        Files.createFile(file);
+        fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
+        fileName = input;
+        sendMetaInfForReceive();
+        socketChannel.read(byteBuffer);
+        byteBuffer.flip();
+        fileSize = byteBuffer.getLong();
+        byteBuffer.clear();
+        while (fileChannel.size() != fileSize) {
+            socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+            fileChannel.write(byteBuffer);
+            byteBuffer.clear();
+        }
+        fileChannel.close();
+        System.out.println("finished");
+    }
+
+    private void sendMetaInfForReceive() throws IOException {
+        byte[] filenameBytes = input.getBytes();
+        byteBuffer.put((byte) RECEIVE_FILE_CODE);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+    }
+
+    private void deleteFile() throws IOException {
+        System.out.println("Enter file name: ");
+        input = scanner.next();
+        byte[] filenameBytes = input.getBytes();
+        byteBuffer.put((byte) DELETE_FILE_CODE);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+    }
+
+    public void getStorage() throws IOException {
+        System.out.println("receiving file list from server");
+        byteBuffer.put((byte) GET_STORAGE_CODE);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+        socketChannel.read(byteBuffer);
+        System.out.println(new String(byteBuffer.array()));
+        byteBuffer.clear();
     }
 }
