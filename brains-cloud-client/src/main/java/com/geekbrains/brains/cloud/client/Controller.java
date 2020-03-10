@@ -15,6 +15,7 @@ public class Controller {
     final int GET_STORAGE_CODE = 17;
     final int EXIT_CODE = 18;
     final int DELETE_FILE_CODE = 19;
+    final int RENAME_FILE_CODE = 20;
     final String IP_ADRESS = "localhost";
     final int PORT = 8189;
     Scanner scanner;
@@ -24,6 +25,7 @@ public class Controller {
     String fileName;
     Path file;
     long fileSize;
+    byte[] filenameBytes;
     ByteBuffer byteBuffer;
     boolean authorized;
 
@@ -57,6 +59,9 @@ public class Controller {
                     case "d":
                         deleteFile();
                         break;
+                    case "n":
+                        renameFile();
+                        break;
                     case "e":
                         byteBuffer.put((byte) EXIT_CODE);
                         byteBuffer.flip();
@@ -70,7 +75,6 @@ public class Controller {
             e.printStackTrace();
         }
     }
-
 
     private void login() throws IOException {
         while (true) {
@@ -127,7 +131,7 @@ public class Controller {
     }
 
     private void sendMetaInf() throws IOException {
-        byte[] filenameBytes = fileName.getBytes();
+        filenameBytes = fileName.getBytes();
         System.out.println(byteBuffer);
         byteBuffer.put((byte) TRANSFER_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
@@ -163,7 +167,7 @@ public class Controller {
     }
 
     private void sendMetaInfForReceive() throws IOException {
-        byte[] filenameBytes = input.getBytes();
+        filenameBytes = input.getBytes();
         byteBuffer.put((byte) RECEIVE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
@@ -175,8 +179,26 @@ public class Controller {
     private void deleteFile() throws IOException {
         System.out.println("Enter file name: ");
         input = scanner.next();
-        byte[] filenameBytes = input.getBytes();
+        filenameBytes = input.getBytes();
         byteBuffer.put((byte) DELETE_FILE_CODE);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+    }
+
+
+    private void renameFile() throws IOException{
+        System.out.println("Enter filename: ");
+        input = scanner.next();
+        filenameBytes = input.getBytes();
+        byteBuffer.put((byte) RENAME_FILE_CODE);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        System.out.println("Enter new filename");
+        input = scanner.next();
+        filenameBytes = input.getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();

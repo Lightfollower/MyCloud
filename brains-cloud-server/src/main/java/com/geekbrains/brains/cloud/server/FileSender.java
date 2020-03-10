@@ -43,4 +43,9 @@ public class FileSender {
         file = new File(filename);
         file.delete();
     }
+
+    public void renameFile(String filename, String newFileName) {
+        file = new File(filename);
+        file.renameTo(new File(newFileName));
+    }
 }
