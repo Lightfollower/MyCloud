@@ -31,7 +31,7 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("Handler here");
+        System.out.println("Handler here " + userName);
     }
 
     @Override
@@ -99,6 +99,5 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
         buf.writeBytes(stringBuilder.toString().getBytes());
         ctx.writeAndFlush(buf);
         System.out.println(stringBuilder.toString());
-        buf.release();
     }
 }
