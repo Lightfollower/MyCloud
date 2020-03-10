@@ -22,16 +22,13 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) throws IOException {
         System.out.println("File writer activated");
         ByteBuf byteBuf = ctx.alloc().buffer(1024);
         file = new File(filename);
         out = new BufferedOutputStream(new FileOutputStream(file, true));
         System.out.println("initializing finished");
         System.out.println("file size: " + fileSize);
-        //        Клиент не отправляет файл, ждёт подтверждения готовности к приёму.
-        byteBuf.writeByte(3);
-        ctx.writeAndFlush(byteBuf);
     }
 
     @Override

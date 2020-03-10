@@ -113,7 +113,6 @@ public class Controller {
         fileSize = Files.size(file);
         fileName = file.getFileName().toString();
         sendMetaInf();
-        socketChannel.read(byteBuffer);
         System.out.println("transferring file: " + input);
         System.out.println("start transferring");
         byteBuffer.clear();
@@ -212,8 +211,13 @@ public class Controller {
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
-        socketChannel.read(byteBuffer);
-        System.out.println(new String(byteBuffer.array()));
+        byte[] b = new byte[socketChannel.read(byteBuffer)];
+        byteBuffer.flip();
+        for (int i = 0; i < b.length; i++) {
+            b[i] = byteBuffer.get();
+        }
+
+        System.out.print(new String(b));
         byteBuffer.clear();
     }
 }

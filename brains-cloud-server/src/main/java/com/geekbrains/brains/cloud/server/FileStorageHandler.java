@@ -72,6 +72,7 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
                 ctx.pipeline().remove(this);
                 break;
         }
+        buf.release();
     }
 
     @Override
@@ -102,14 +103,19 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
         folder = new File("/cloud/myCloud/" + userName);
         files = folder.listFiles();
         StringBuilder stringBuilder = new StringBuilder();
+        ByteBuf buf = ctx.alloc().buffer(2048);
+        if(files.length == 0) {
+            buf.writeBytes("empty\n".getBytes());
+            ctx.writeAndFlush(buf);
+            return;
+        }
         for (File f :
                 files) {
+            System.out.println(f.getName());
             if (f.isFile())
-                stringBuilder.append(f.getName() + "\n");
+                stringBuilder.append(f.getName() + System.lineSeparator());
         }
-        ByteBuf buf = ctx.alloc().buffer(2048);
         buf.writeBytes(stringBuilder.toString().getBytes());
         ctx.writeAndFlush(buf);
-        System.out.println(stringBuilder.toString());
     }
 }
