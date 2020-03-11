@@ -10,12 +10,13 @@ import java.nio.file.*;
 import java.util.*;
 
 public class Controller {
-    final int TRANSFER_FILE_CODE = 15;
-    final int RECEIVE_FILE_CODE = 16;
-    final int GET_STORAGE_CODE = 17;
-    final int EXIT_CODE = 18;
-    final int DELETE_FILE_CODE = 19;
-    final int RENAME_FILE_CODE = 20;
+    final byte SHUTDOWN_CODE = 21;
+    final byte TRANSFER_FILE_CODE = 15;
+    final byte RECEIVE_FILE_CODE = 16;
+    final byte GET_STORAGE_CODE = 17;
+    final byte EXIT_CODE = 18;
+    final byte DELETE_FILE_CODE = 19;
+    final byte RENAME_FILE_CODE = 20;
     final String IP_ADRESS = "localhost";
     final int PORT = 8189;
     Scanner scanner;
@@ -44,8 +45,11 @@ public class Controller {
                     login();
                 System.out.println("Enter command:");
                 input = scanner.next();
-                if (input.equals("end"))
+                if (input.equals("end")) {
+                    socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
+//                    socketChannel.close();
                     break;
+                }
                 switch (input) {
                     case "t":
                         transferFile();
@@ -63,7 +67,7 @@ public class Controller {
                         renameFile();
                         break;
                     case "e":
-                        byteBuffer.put((byte) EXIT_CODE);
+                        byteBuffer.put(EXIT_CODE);
                         byteBuffer.flip();
                         socketChannel.write(byteBuffer);
                         authorized = false;
@@ -188,7 +192,7 @@ public class Controller {
     }
 
 
-    private void renameFile() throws IOException{
+    private void renameFile() throws IOException {
         System.out.println("Enter filename: ");
         input = scanner.next();
         filenameBytes = input.getBytes();

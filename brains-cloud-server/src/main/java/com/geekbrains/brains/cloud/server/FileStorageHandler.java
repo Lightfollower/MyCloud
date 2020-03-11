@@ -8,12 +8,13 @@ import java.io.File;
 import java.nio.charset.Charset;
 
 public class FileStorageHandler extends ChannelInboundHandlerAdapter {
-    final int TRANSFER_FILE_CODE = 15;
-    final int RECEIVE_FILE_CODE = 16;
-    final int GET_STORAGE_CODE = 17;
-    final int EXIT_CODE = 18;
-    final int DELETE_FILE_CODE = 19;
-    final int RENAME_FILE_CODE = 20;
+    final byte SHUTDOWN_CODE = 21;
+    final byte TRANSFER_FILE_CODE = 15;
+    final byte RECEIVE_FILE_CODE = 16;
+    final byte GET_STORAGE_CODE = 17;
+    final byte EXIT_CODE = 18;
+    final byte DELETE_FILE_CODE = 19;
+    final byte RENAME_FILE_CODE = 20;
 
     String userName;
     byte command;
@@ -70,6 +71,10 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
                 ctx.pipeline().addFirst(authorizationHandler);
                 authorizationHandler.channelActive(ctx);
                 ctx.pipeline().remove(this);
+                break;
+            case SHUTDOWN_CODE:
+                System.out.println("shutdown");
+                ctx.close();
                 break;
         }
         buf.release();

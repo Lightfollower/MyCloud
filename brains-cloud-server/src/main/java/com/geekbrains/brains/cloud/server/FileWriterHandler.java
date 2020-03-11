@@ -24,7 +24,6 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws IOException {
         System.out.println("File writer activated");
-        ByteBuf byteBuf = ctx.alloc().buffer(1024);
         file = new File(filename);
         out = new BufferedOutputStream(new FileOutputStream(file, true));
         System.out.println("initializing finished");
