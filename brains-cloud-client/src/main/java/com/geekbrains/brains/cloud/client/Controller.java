@@ -1,6 +1,11 @@
 package com.geekbrains.brains.cloud.client;
 
 
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -10,6 +15,12 @@ import java.nio.file.*;
 import java.util.*;
 
 public class Controller {
+    @FXML
+    TextField tfFileName;
+
+    @FXML
+    ListView<String> filesList;
+
     final byte SHUTDOWN_CODE = 21;
     final byte TRANSFER_FILE_CODE = 15;
     final byte RECEIVE_FILE_CODE = 16;
@@ -37,47 +48,50 @@ public class Controller {
     }
 
     public void startClient() {
-        try {
-            socketChannel = SocketChannel.open();
-            socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
-            while (true) {
-                if (!authorized)
-                    login();
-                System.out.println("Enter command:");
-                input = scanner.next();
-                if (input.equals("end")) {
-                    socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
+        new Thread(() -> {
+            try {
+                socketChannel = SocketChannel.open();
+                socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
+                while (true) {
+                    if (!authorized)
+                        login();
+                    System.out.println("Enter command:");
+                    input = scanner.next();
+                    if (input.equals("end")) {
+                        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
 //                    socketChannel.close();
-                    break;
+                        break;
+                    }
+                    switch (input) {
+                        case "t":
+                            transferFile();
+                            break;
+                        case "r":
+                            receiveFile();
+                            break;
+                        case "s":
+                            getStorage();
+                            break;
+                        case "d":
+                            deleteFile();
+                            break;
+                        case "n":
+                            renameFile();
+                            break;
+                        case "e":
+                            byteBuffer.put(EXIT_CODE);
+                            byteBuffer.flip();
+                            socketChannel.write(byteBuffer);
+                            authorized = false;
+                            byteBuffer.clear();
+                            break;
+                    }
                 }
-                switch (input) {
-                    case "t":
-                        transferFile();
-                        break;
-                    case "r":
-                        receiveFile();
-                        break;
-                    case "s":
-                        getStorage();
-                        break;
-                    case "d":
-                        deleteFile();
-                        break;
-                    case "n":
-                        renameFile();
-                        break;
-                    case "e":
-                        byteBuffer.put(EXIT_CODE);
-                        byteBuffer.flip();
-                        socketChannel.write(byteBuffer);
-                        authorized = false;
-                        byteBuffer.clear();
-                        break;
-                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        }).start();
+
     }
 
     private void login() throws IOException {
@@ -148,7 +162,7 @@ public class Controller {
 
     public void receiveFile() throws IOException {
         System.out.println("Enter file name: ");
-        input = scanner.next();
+        input = tfFileName.getText();
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
         Files.createFile(file);
@@ -220,7 +234,10 @@ public class Controller {
         for (int i = 0; i < b.length; i++) {
             b[i] = byteBuffer.get();
         }
-
+        Platform.runLater(() -> {
+            filesList.getItems().clear();
+            filesList.getItems().add(new String(b));
+        });
         System.out.print(new String(b));
         byteBuffer.clear();
     }
