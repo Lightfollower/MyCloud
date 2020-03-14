@@ -16,7 +16,10 @@ import java.util.*;
 
 public class Controller {
     @FXML
-    TextField tfFileName;
+    TextField tfReceivingFileName;
+
+    @FXML
+    TextField tfTransferFileName;
 
     @FXML
     ListView<String> filesList;
@@ -52,9 +55,11 @@ public class Controller {
             try {
                 socketChannel = SocketChannel.open();
                 socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
+
                 while (true) {
                     if (!authorized)
                         login();
+                    getStorage();
                     System.out.println("Enter command:");
                     input = scanner.next();
                     if (input.equals("end")) {
@@ -124,8 +129,9 @@ public class Controller {
     }
 
     public void transferFile() throws IOException {
-        System.out.println("Enter file name: ");
-        input = scanner.next();
+//        System.out.println("Enter file name: ");
+        input = tfTransferFileName.getText();
+        tfTransferFileName.clear();
         file = Paths.get(input);
         fileChannel = FileChannel.open(file);
         fileSize = Files.size(file);
@@ -145,6 +151,7 @@ public class Controller {
         byteBuffer.clear();
         System.out.println("finished");
         fileChannel.close();
+        getStorage();
     }
 
     private void sendMetaInf() throws IOException {
@@ -161,8 +168,9 @@ public class Controller {
     }
 
     public void receiveFile() throws IOException {
-        System.out.println("Enter file name: ");
-        input = tfFileName.getText();
+//        System.out.println("Enter file name: ");
+        input = tfReceivingFileName.getText();
+        tfTransferFileName.clear();
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
         Files.createFile(file);
@@ -181,6 +189,7 @@ public class Controller {
         }
         fileChannel.close();
         System.out.println("finished");
+        getStorage();
     }
 
     private void sendMetaInfForReceive() throws IOException {
