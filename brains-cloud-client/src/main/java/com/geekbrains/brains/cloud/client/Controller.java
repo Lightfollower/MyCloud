@@ -4,7 +4,9 @@ package com.geekbrains.brains.cloud.client;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -24,6 +26,21 @@ public class Controller {
     @FXML
     ListView<String> filesList;
 
+    @FXML
+    HBox authPanel;
+
+    @FXML
+    HBox receivePanel;
+
+    @FXML
+    HBox transferPanel;
+
+    @FXML
+    TextField loginField;
+
+    @FXML
+    PasswordField passwordFiled;
+
     final byte SHUTDOWN_CODE = 21;
     final byte TRANSFER_FILE_CODE = 15;
     final byte RECEIVE_FILE_CODE = 16;
@@ -42,90 +59,100 @@ public class Controller {
     long fileSize;
     byte[] filenameBytes;
     ByteBuffer byteBuffer;
-    boolean authorized;
+    boolean isAuthorized;
 
     public Controller() {
-        scanner = new Scanner(System.in);
+//        scanner = new Scanner(System.in);
         byteBuffer = ByteBuffer.allocate(1024);
         startClient();
     }
 
     public void startClient() {
-        new Thread(() -> {
-            try {
-                socketChannel = SocketChannel.open();
-                socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
+//        new Thread(() -> {
+        try {
+            socketChannel = SocketChannel.open();
+            socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
 
-                while (true) {
-                    if (!authorized)
-                        login();
-                    getStorage();
-                    System.out.println("Enter command:");
-                    input = scanner.next();
-                    if (input.equals("end")) {
-                        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
+//                while (true) {
+//                    if (!isAuthorized)
+//                        login();
+//                    getStorage();
+//                    System.out.println("Enter command:");
+//                input = scanner.next();
+//                    if (input.equals("end")) {
+//                        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
 //                    socketChannel.close();
-                        break;
-                    }
-                    switch (input) {
-                        case "t":
-                            transferFile();
-                            break;
-                        case "r":
-                            receiveFile();
-                            break;
-                        case "s":
-                            getStorage();
-                            break;
-                        case "d":
-                            deleteFile();
-                            break;
-                        case "n":
-                            renameFile();
-                            break;
-                        case "e":
-                            byteBuffer.put(EXIT_CODE);
-                            byteBuffer.flip();
-                            socketChannel.write(byteBuffer);
-                            authorized = false;
-                            byteBuffer.clear();
-                            break;
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+//                        break;
+//                    }
+//                switch (input) {
+//                    case "t":
+//                        transferFile();
+//                        break;
+//                    case "r":
+//                        receiveFile();
+//                        break;
+//                    case "s":
+//                        getStorage();
+//                        break;
+//                    case "d":
+//                        deleteFile();
+//                        break;
+//                    case "n":
+//                        renameFile();
+//                        break;
+//                    case "e":
+//                        byteBuffer.put(EXIT_CODE);
+//                        byteBuffer.flip();
+//                        socketChannel.write(byteBuffer);
+//                        isAuthorized = false;
+//                        byteBuffer.clear();
+//                        break;
+//                }
+//                }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        }).start();
 
     }
 
+    @FXML
     private void login() throws IOException {
-        while (true) {
-            System.out.println("Enter name:");
-            input = scanner.next();
-            byte[] bytes = input.getBytes();
-            byteBuffer.put((byte) bytes.length);
-            byteBuffer.put(bytes);
-            System.out.println("Enter password:");
-            input = scanner.next();
-            bytes = input.getBytes();
-            byteBuffer.put((byte) bytes.length);
-            byteBuffer.put(bytes);
-            byteBuffer.flip();
-            socketChannel.write(byteBuffer);
-            byteBuffer.clear();
-            socketChannel.read(byteBuffer);
-            byteBuffer.flip();
-            byte b = byteBuffer.get();
-            byteBuffer.clear();
-            if (b == 1) {
-                System.out.println("Password accepted");
-                authorized = true;
-                break;
-            } else {
-                System.out.println("login or password incorrect");
-            }
+//            System.out.println("Enter name:");
+//            input = scanner.next();
+        byte[] bytes = loginField.getText().getBytes();
+        byteBuffer.put((byte) bytes.length);
+        byteBuffer.put(bytes);
+//        System.out.println("Enter password:");
+//            input = scanner.next();
+        bytes = passwordFiled.getText().getBytes();
+        byteBuffer.put((byte) bytes.length);
+        byteBuffer.put(bytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+        socketChannel.read(byteBuffer);
+        byteBuffer.flip();
+        byte b = byteBuffer.get();
+        byteBuffer.clear();
+        if (b == 1) {
+            System.out.println("Password accepted");
+            isAuthorized = true;
+            setAuthorized();
+            loginField.clear();
+            passwordFiled.clear();
+        } else {
+            System.out.println("login or password incorrect");
         }
+    }
+
+    public void unlogin() throws IOException {
+        isAuthorized = false;
+        setAuthorized();
+        byteBuffer.put(EXIT_CODE);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
     }
 
     public void transferFile() throws IOException {
@@ -170,7 +197,7 @@ public class Controller {
     public void receiveFile() throws IOException {
 //        System.out.println("Enter file name: ");
         input = tfReceivingFileName.getText();
-        tfTransferFileName.clear();
+        tfReceivingFileName.clear();
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
         Files.createFile(file);
@@ -249,5 +276,23 @@ public class Controller {
         });
         System.out.print(new String(b));
         byteBuffer.clear();
+    }
+
+    public void setAuthorized() {
+        if (!isAuthorized) {
+            authPanel.setVisible(true);
+            authPanel.setManaged(true);
+            receivePanel.setVisible(false);
+            receivePanel.setManaged(false);
+            transferPanel.setVisible(false);
+            transferPanel.setManaged(false);
+        } else {
+            authPanel.setVisible(false);
+            authPanel.setManaged(false);
+            receivePanel.setVisible(true);
+            receivePanel.setManaged(true);
+            transferPanel.setVisible(true);
+            transferPanel.setManaged(true);
+        }
     }
 }
