@@ -6,11 +6,16 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.io.IOException;
+
 public class MainClient extends Application {
+    Controller controller;
+
     @Override
     public void start(Stage primaryStage) throws Exception{
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/main.fxml"));
         Parent root = fxmlLoader.load();
+        controller = fxmlLoader.getController();
         primaryStage.setTitle("Box Client");
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
@@ -19,5 +24,14 @@ public class MainClient extends Application {
 
     public static void main(String[] args) {
         launch(args);
+    }
+
+    @Override
+    public void stop() {
+        try {
+            controller.shutdown();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

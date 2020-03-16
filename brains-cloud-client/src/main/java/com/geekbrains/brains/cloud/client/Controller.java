@@ -2,26 +2,42 @@ package com.geekbrains.brains.cloud.client;
 
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
-public class Controller {
-    @FXML
-    TextField tfReceivingFileName;
-
-    @FXML
-    TextField tfTransferFileName;
+public class Controller implements Initializable {
+    final byte SHUTDOWN_CODE = 21;
+    final byte TRANSFER_FILE_CODE = 15;
+    final byte RECEIVE_FILE_CODE = 16;
+    final byte GET_STORAGE_CODE = 17;
+    final byte EXIT_CODE = 18;
+    final byte DELETE_FILE_CODE = 19;
+    final byte RENAME_FILE_CODE = 20;
+    final String IP_ADRESS = "localhost";
+    final int PORT = 8189;
 
     @FXML
     ListView<String> filesList;
@@ -36,21 +52,19 @@ public class Controller {
     HBox transferPanel;
 
     @FXML
+    HBox exitPanel;
+
+    @FXML
     TextField loginField;
 
     @FXML
     PasswordField passwordFiled;
 
-    final byte SHUTDOWN_CODE = 21;
-    final byte TRANSFER_FILE_CODE = 15;
-    final byte RECEIVE_FILE_CODE = 16;
-    final byte GET_STORAGE_CODE = 17;
-    final byte EXIT_CODE = 18;
-    final byte DELETE_FILE_CODE = 19;
-    final byte RENAME_FILE_CODE = 20;
-    final String IP_ADRESS = "localhost";
-    final int PORT = 8189;
-    Scanner scanner;
+    @FXML
+    Label filesDragAndDrop;
+
+    List<String> filesForTransfer;
+
     String input;
     SocketChannel socketChannel;
     FileChannel fileChannel;
@@ -60,71 +74,33 @@ public class Controller {
     byte[] filenameBytes;
     ByteBuffer byteBuffer;
     boolean isAuthorized;
+    CountDownLatch countDownLatch;
 
     public Controller() {
-//        scanner = new Scanner(System.in);
         byteBuffer = ByteBuffer.allocate(1024);
+        filesForTransfer = new ArrayList<>();
         startClient();
     }
 
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        initializeDragAndDropLabel();
+    }
+
     public void startClient() {
-//        new Thread(() -> {
         try {
             socketChannel = SocketChannel.open();
             socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
-
-//                while (true) {
-//                    if (!isAuthorized)
-//                        login();
-//                    getStorage();
-//                    System.out.println("Enter command:");
-//                input = scanner.next();
-//                    if (input.equals("end")) {
-//                        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
-//                    socketChannel.close();
-//                        break;
-//                    }
-//                switch (input) {
-//                    case "t":
-//                        transferFile();
-//                        break;
-//                    case "r":
-//                        receiveFile();
-//                        break;
-//                    case "s":
-//                        getStorage();
-//                        break;
-//                    case "d":
-//                        deleteFile();
-//                        break;
-//                    case "n":
-//                        renameFile();
-//                        break;
-//                    case "e":
-//                        byteBuffer.put(EXIT_CODE);
-//                        byteBuffer.flip();
-//                        socketChannel.write(byteBuffer);
-//                        isAuthorized = false;
-//                        byteBuffer.clear();
-//                        break;
-//                }
-//                }
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        }).start();
-
     }
 
     @FXML
     private void login() throws IOException {
-//            System.out.println("Enter name:");
-//            input = scanner.next();
         byte[] bytes = loginField.getText().getBytes();
         byteBuffer.put((byte) bytes.length);
         byteBuffer.put(bytes);
-//        System.out.println("Enter password:");
-//            input = scanner.next();
         bytes = passwordFiled.getText().getBytes();
         byteBuffer.put((byte) bytes.length);
         byteBuffer.put(bytes);
@@ -141,6 +117,7 @@ public class Controller {
             setAuthorized();
             loginField.clear();
             passwordFiled.clear();
+            getStorage();
         } else {
             System.out.println("login or password incorrect");
         }
@@ -156,35 +133,37 @@ public class Controller {
     }
 
     public void transferFile() throws IOException {
-//        System.out.println("Enter file name: ");
-        input = tfTransferFileName.getText();
-        tfTransferFileName.clear();
-        file = Paths.get(input);
-        fileChannel = FileChannel.open(file);
-        fileSize = Files.size(file);
-        fileName = file.getFileName().toString();
-        sendMetaInf();
-        System.out.println("transferring file: " + input);
-        System.out.println("start transferring");
-        byteBuffer.clear();
-        int n = fileChannel.read(byteBuffer);
-        do {
-            byteBuffer.flip();
-            socketChannel.write(byteBuffer);
+        for (String s :
+                filesForTransfer) {
+            input = s;
+//            tfTransferFileName.clear();
+            file = Paths.get(input);
+            fileChannel = FileChannel.open(file);
+            fileSize = Files.size(file);
+            fileName = file.getFileName().toString();
+            sendMetaInf();
+            System.out.println("transferring file: " + input);
+            System.out.println("start transferring");
             byteBuffer.clear();
-            n = fileChannel.read(byteBuffer);
+            int n = fileChannel.read(byteBuffer);
+            do {
+                byteBuffer.flip();
+                socketChannel.write(byteBuffer);
+                byteBuffer.clear();
+                n = fileChannel.read(byteBuffer);
+            }
+            while (n > -1);
+            byteBuffer.clear();
+            System.out.println("finished");
+            fileChannel.close();
+            getStorage();
         }
-        while (n > -1);
-        byteBuffer.clear();
-        System.out.println("finished");
-        fileChannel.close();
-        getStorage();
+        filesForTransfer.clear();
     }
 
     private void sendMetaInf() throws IOException {
         filenameBytes = fileName.getBytes();
-        System.out.println(byteBuffer);
-        byteBuffer.put((byte) TRANSFER_FILE_CODE);
+        byteBuffer.put(TRANSFER_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.putLong(fileSize);
@@ -195,9 +174,7 @@ public class Controller {
     }
 
     public void receiveFile() throws IOException {
-//        System.out.println("Enter file name: ");
-        input = tfReceivingFileName.getText();
-        tfReceivingFileName.clear();
+        input = filesList.getSelectionModel().getSelectedItem();
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
         Files.createFile(file);
@@ -221,7 +198,7 @@ public class Controller {
 
     private void sendMetaInfForReceive() throws IOException {
         filenameBytes = input.getBytes();
-        byteBuffer.put((byte) RECEIVE_FILE_CODE);
+        byteBuffer.put(RECEIVE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
@@ -229,40 +206,60 @@ public class Controller {
         byteBuffer.clear();
     }
 
-    private void deleteFile() throws IOException {
-        System.out.println("Enter file name: ");
-        input = scanner.next();
+    public void deleteFile() throws IOException {
+        input = filesList.getSelectionModel().getSelectedItem();
         filenameBytes = input.getBytes();
-        byteBuffer.put((byte) DELETE_FILE_CODE);
+        byteBuffer.put(DELETE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
+        getStorage();
     }
 
 
-    private void renameFile() throws IOException {
-        System.out.println("Enter filename: ");
-        input = scanner.next();
+    public void renameFile() throws IOException, InterruptedException {
+        countDownLatch = new CountDownLatch(1);
+        input = filesList.getSelectionModel().getSelectedItem();
         filenameBytes = input.getBytes();
-        byteBuffer.put((byte) RENAME_FILE_CODE);
+        byteBuffer.put(RENAME_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
-        System.out.println("Enter new filename");
-        input = scanner.next();
+        try {
+            Stage stage = new Stage();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Rename.fxml"));
+            Parent root = loader.load();
+            RenameController lc = loader.getController();
+            lc.id = 100;
+            lc.backController = this;
+
+            stage.setTitle("Enter new name");
+            stage.setScene(new Scene(root, 400, 200));
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        countDownLatch.await();
         filenameBytes = input.getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
+        getStorage();
     }
 
     public void getStorage() throws IOException {
         System.out.println("receiving file list from server");
-        byteBuffer.put((byte) GET_STORAGE_CODE);
+        byteBuffer.put(GET_STORAGE_CODE);
         byteBuffer.flip();
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
         byte[] b = new byte[socketChannel.read(byteBuffer)];
@@ -270,9 +267,10 @@ public class Controller {
         for (int i = 0; i < b.length; i++) {
             b[i] = byteBuffer.get();
         }
+        String[] strings = new String(b).split(System.lineSeparator());
         Platform.runLater(() -> {
             filesList.getItems().clear();
-            filesList.getItems().add(new String(b));
+            filesList.getItems().addAll(strings);
         });
         System.out.print(new String(b));
         byteBuffer.clear();
@@ -286,6 +284,8 @@ public class Controller {
             receivePanel.setManaged(false);
             transferPanel.setVisible(false);
             transferPanel.setManaged(false);
+            exitPanel.setVisible(false);
+            exitPanel.setManaged(false);
         } else {
             authPanel.setVisible(false);
             authPanel.setManaged(false);
@@ -293,6 +293,42 @@ public class Controller {
             receivePanel.setManaged(true);
             transferPanel.setVisible(true);
             transferPanel.setManaged(true);
+            exitPanel.setVisible(true);
+            exitPanel.setManaged(true);
         }
+    }
+
+    public void shutdown() throws IOException {
+        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
+        socketChannel.close();
+    }
+
+    private void initializeDragAndDropLabel() {
+        filesDragAndDrop.setOnDragOver(event -> {
+            if (event.getGestureSource() != filesDragAndDrop && event.getDragboard().hasFiles()) {
+                event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+            }
+            event.consume();
+        });
+
+        filesDragAndDrop.setOnDragDropped(event -> {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+            if (db.hasFiles()) {
+                filesDragAndDrop.setText("");
+                for (File o : db.getFiles()) {
+                    filesForTransfer.add(o.getAbsolutePath());
+                }
+                try {
+                    transferFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                filesDragAndDrop.setText("Drop files here!");
+                success = true;
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        });
     }
 }
