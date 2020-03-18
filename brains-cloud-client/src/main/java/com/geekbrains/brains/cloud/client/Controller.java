@@ -2,7 +2,6 @@ package com.geekbrains.brains.cloud.client;
 
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -36,8 +35,10 @@ public class Controller implements Initializable {
     final byte EXIT_CODE = 18;
     final byte DELETE_FILE_CODE = 19;
     final byte RENAME_FILE_CODE = 20;
-    final String IP_ADRESS = "localhost";
-    final int PORT = 8189;
+    final byte LOGIN_CODE = 21;
+    final byte REGISTER_CODE = 22;
+    final String IP_ADDRESS;
+    final int PORT;
 
     @FXML
     ListView<String> filesList;
@@ -63,8 +64,8 @@ public class Controller implements Initializable {
     @FXML
     Label filesDragAndDrop;
 
+    Properties properties;
     List<String> filesForTransfer;
-
     String input;
     SocketChannel socketChannel;
     FileChannel fileChannel;
@@ -76,7 +77,12 @@ public class Controller implements Initializable {
     boolean isAuthorized;
     CountDownLatch countDownLatch;
 
-    public Controller() {
+    public Controller() throws IOException {
+        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\adress.properties");
+        properties = new Properties();
+        properties.load(new FileReader(propertiesFile));
+        IP_ADDRESS = properties.getProperty("ipAddress");
+        PORT = Integer.parseInt(properties.getProperty("port"));
         byteBuffer = ByteBuffer.allocate(1024);
         filesForTransfer = new ArrayList<>();
         startClient();
@@ -90,7 +96,7 @@ public class Controller implements Initializable {
     public void startClient() {
         try {
             socketChannel = SocketChannel.open();
-            socketChannel.connect(new InetSocketAddress(IP_ADRESS, PORT));
+            socketChannel.connect(new InetSocketAddress(IP_ADDRESS, PORT));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -99,6 +105,7 @@ public class Controller implements Initializable {
     @FXML
     private void login() throws IOException {
         byte[] bytes = loginField.getText().getBytes();
+        byteBuffer.put(LOGIN_CODE);
         byteBuffer.put((byte) bytes.length);
         byteBuffer.put(bytes);
         bytes = passwordFiled.getText().getBytes();
@@ -123,6 +130,33 @@ public class Controller implements Initializable {
         }
     }
 
+    public void register() throws IOException {
+        byte[] bytes = loginField.getText().getBytes();
+        byteBuffer.put(REGISTER_CODE);
+        byteBuffer.put((byte) bytes.length);
+        byteBuffer.put(bytes);
+        bytes = passwordFiled.getText().getBytes();
+        byteBuffer.put((byte) bytes.length);
+        byteBuffer.put(bytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        byteBuffer.clear();
+        socketChannel.read(byteBuffer);
+        byteBuffer.flip();
+        byte b = byteBuffer.get();
+        byteBuffer.clear();
+        if (b == 1) {
+            System.out.println("User registered");
+            isAuthorized = true;
+            setAuthorized();
+            loginField.clear();
+            passwordFiled.clear();
+            getStorage();
+        } else {
+            System.out.println("Login busy");
+        }
+    }
+
     public void unlogin() throws IOException {
         isAuthorized = false;
         setAuthorized();
@@ -136,7 +170,6 @@ public class Controller implements Initializable {
         for (String s :
                 filesForTransfer) {
             input = s;
-//            tfTransferFileName.clear();
             file = Paths.get(input);
             fileChannel = FileChannel.open(file);
             fileSize = Files.size(file);
@@ -256,7 +289,7 @@ public class Controller implements Initializable {
         byteBuffer.put(GET_STORAGE_CODE);
         byteBuffer.flip();
         try {
-            Thread.sleep(50);
+            Thread.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

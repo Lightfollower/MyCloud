@@ -6,8 +6,23 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Properties;
+
 
 public class Server {
+    final int PORT;
+
+    public Server() throws IOException {
+        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\adress.properties");
+        Properties properties = new Properties();
+        properties.load(new FileReader(propertiesFile));
+        PORT = Integer.parseInt(properties.getProperty("port"));
+    }
+
     public void run() throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -24,7 +39,7 @@ public class Server {
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ChannelFuture f = b.bind(8189).sync();
+            ChannelFuture f = b.bind(PORT).sync();
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

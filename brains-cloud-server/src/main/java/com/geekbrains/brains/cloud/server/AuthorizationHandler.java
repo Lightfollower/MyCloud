@@ -5,9 +5,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.nio.charset.Charset;
+import java.sql.SQLException;
 
 public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
+    final byte LOGIN_CODE = 21;
+    final byte REGISTER_CODE = 22;
     ByteBuf buf;
+    byte b;
+
     String login;
     String password;
     Boolean authorized;
@@ -21,6 +26,36 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         buf = (ByteBuf) msg;
         byte b = buf.readByte();
+        switch (b) {
+            case 21:
+                login(ctx);
+                break;
+            case 22:
+                register(ctx);
+                break;
+        }
+    }
+
+    private void register(ChannelHandlerContext ctx) throws Exception {
+        b = buf.readByte();
+        System.out.println("login: " + (login = buf.readCharSequence(b, Charset.defaultCharset()).toString()));
+        b = buf.readByte();
+        System.out.println("password: " + (password = buf.readCharSequence(b, Charset.defaultCharset()).toString()));
+        authorized = DBService.register(login, password);
+        buf.clear();
+        buf.writeByte(authorized ? (byte) 1 : (byte) 2);
+        ctx.writeAndFlush(buf);
+        buf.clear();
+        if (authorized) {
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, login);
+            fileStorageHandler.channelActive(ctx);
+            ctx.pipeline().addFirst(fileStorageHandler);
+            ctx.pipeline().remove(this);
+        }
+    }
+
+    private void login(ChannelHandlerContext ctx) throws Exception {
+        b = buf.readByte();
         System.out.println("login: " + (login = buf.readCharSequence(b, Charset.defaultCharset()).toString()));
         b = buf.readByte();
         System.out.println("password: " + (password = buf.readCharSequence(b, Charset.defaultCharset()).toString()));
