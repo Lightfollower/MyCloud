@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.io.File;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
 
@@ -47,6 +48,8 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         ctx.writeAndFlush(buf);
         buf.clear();
         if (authorized) {
+            File userFolder = new File("/cloud/myCloud/" + login);
+                userFolder.mkdir();
             FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, login);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().addFirst(fileStorageHandler);

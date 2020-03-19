@@ -7,7 +7,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
@@ -15,12 +14,13 @@ import java.util.Properties;
 
 public class Server {
     final int PORT;
-
+    Properties properties;
     public Server() throws IOException {
-        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\adress.properties");
-        Properties properties = new Properties();
+        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-server\\src\\main\\resources\\port.properties");
+        properties = new Properties();
         properties.load(new FileReader(propertiesFile));
         PORT = Integer.parseInt(properties.getProperty("port"));
+        DBService.setProperties(properties);
     }
 
     public void run() throws Exception {
@@ -44,6 +44,7 @@ public class Server {
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
+            DBService.disconnect();
         }
     }
 }

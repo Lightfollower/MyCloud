@@ -78,7 +78,7 @@ public class Controller implements Initializable {
     CountDownLatch countDownLatch;
 
     public Controller() throws IOException {
-        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\adress.properties");
+        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\address.properties");
         properties = new Properties();
         properties.load(new FileReader(propertiesFile));
         IP_ADDRESS = properties.getProperty("ipAddress");
