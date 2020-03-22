@@ -213,14 +213,14 @@ public class Controller implements Initializable {
         }
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
-        Files.createFile(file);
-        fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
         fileName = input;
         sendMetaInfForReceive();
         socketChannel.read(byteBuffer);
         byteBuffer.flip();
         fileSize = byteBuffer.getLong();
         byteBuffer.clear();
+        Files.createFile(file);
+        fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
         while (fileChannel.size() != fileSize) {
             socketChannel.read(byteBuffer);
             byteBuffer.flip();
@@ -359,7 +359,7 @@ public class Controller implements Initializable {
             if (db.hasFiles()) {
                 filesDragAndDrop.setText("");
                 for (File o : db.getFiles()) {
-                    filesForTransfer.add(o.getAbsolutePath());
+                        filesForTransfer.add(o.getAbsolutePath());
                 }
                 try {
                     transferFile();

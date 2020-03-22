@@ -22,38 +22,36 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws IOException {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("File writer activated");
         file = new File(filename);
         out = new BufferedOutputStream(new FileOutputStream(file, true));
         System.out.println("initializing finished");
         System.out.println("file size: " + fileSize);
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
-        ByteBuf buf = (ByteBuf) msg;
-        try {
-            fileSize -= buf.readableBytes();
-            do {
-                out.write(buf.readByte());
-            } while (buf.readableBytes() > 0);
-            buf.release();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         if (fileSize == 0) {
             out.close();
             System.out.println("fileReceived");
             FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, userName);
             ctx.pipeline().addLast(fileStorageHandler);
-            try {
-                fileStorageHandler.channelActive(ctx);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            fileStorageHandler.channelActive(ctx);
+            ctx.pipeline().remove(this);
+        }
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        ByteBuf buf = (ByteBuf) msg;
+        fileSize -= buf.readableBytes();
+        do {
+            out.write(buf.readByte());
+        } while (buf.readableBytes() > 0);
+        buf.release();
+        if (fileSize == 0) {
+            out.close();
+            System.out.println("fileReceived");
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, userName);
+            ctx.pipeline().addLast(fileStorageHandler);
+            fileStorageHandler.channelActive(ctx);
             ctx.pipeline().remove(this);
         }
     }
