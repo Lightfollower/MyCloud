@@ -208,6 +208,9 @@ public class Controller implements Initializable {
 
     public void receiveFile() throws IOException {
         input = filesList.getSelectionModel().getSelectedItem();
+        if (input == null) {
+            return;
+        }
         System.out.println("receiving file: " + input);
         file = Paths.get("brains-cloud-client/" + input);
         Files.createFile(file);
@@ -241,6 +244,9 @@ public class Controller implements Initializable {
 
     public void deleteFile() throws IOException {
         input = filesList.getSelectionModel().getSelectedItem();
+        if (input == null) {
+            return;
+        }
         filenameBytes = input.getBytes();
         byteBuffer.put(DELETE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
@@ -255,6 +261,9 @@ public class Controller implements Initializable {
     public void renameFile() throws IOException, InterruptedException {
         countDownLatch = new CountDownLatch(1);
         input = filesList.getSelectionModel().getSelectedItem();
+        if (input == null) {
+            return;
+        }
         filenameBytes = input.getBytes();
         byteBuffer.put(RENAME_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
