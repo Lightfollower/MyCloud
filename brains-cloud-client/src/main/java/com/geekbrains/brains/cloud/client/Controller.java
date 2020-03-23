@@ -64,6 +64,9 @@ public class Controller implements Initializable {
     @FXML
     Label filesDragAndDrop;
 
+    @FXML
+    Label infoLabel;
+
     Properties properties;
     List<String> filesForTransfer;
     String input;
@@ -208,17 +211,21 @@ public class Controller implements Initializable {
 
     public void receiveFile() throws IOException {
         input = filesList.getSelectionModel().getSelectedItem();
-        if (input == null) {
+        if (input == null)
+            return;
+        file = Paths.get("brains-cloud-client/" + input);
+        if (Files.exists(file)) {
+            infoLabel.setText("File already exists");
             return;
         }
         System.out.println("receiving file: " + input);
-        file = Paths.get("brains-cloud-client/" + input);
         fileName = input;
         sendMetaInfForReceive();
         socketChannel.read(byteBuffer);
         byteBuffer.flip();
         fileSize = byteBuffer.getLong();
         byteBuffer.clear();
+
         Files.createFile(file);
         fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
         while (fileChannel.size() != fileSize) {
@@ -359,7 +366,7 @@ public class Controller implements Initializable {
             if (db.hasFiles()) {
                 filesDragAndDrop.setText("");
                 for (File o : db.getFiles()) {
-                        filesForTransfer.add(o.getAbsolutePath());
+                    filesForTransfer.add(o.getAbsolutePath());
                 }
                 try {
                     transferFile();

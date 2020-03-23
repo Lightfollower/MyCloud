@@ -12,7 +12,7 @@
       style="-fx-background-color: linear-gradient(#fff 0%, #eee 10%, #ddd 90%, #bbb 100%);"
       xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea"
       fx:controller="com.geekbrains.brains.cloud.client.Controller">
-
+    <Label fx:id="infoLabel"/>
     <HBox fx:id="authPanel">
         <TextField HBox.hgrow="ALWAYS" promptText="Логин" fx:id="loginField"/>
         <PasswordField promptText="Пароль" fx:id="passwordFiled" onAction="#login"/>
