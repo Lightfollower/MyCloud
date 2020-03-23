@@ -25,7 +25,7 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("File writer activated");
         file = new File(filename);
-        out = new BufferedOutputStream(new FileOutputStream(file, true));
+        out = new BufferedOutputStream(new FileOutputStream(file));
         System.out.println("initializing finished");
         System.out.println("file size: " + fileSize);
         if (fileSize == 0) {
