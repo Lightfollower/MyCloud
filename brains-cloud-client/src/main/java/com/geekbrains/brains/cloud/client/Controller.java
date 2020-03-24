@@ -1,6 +1,7 @@
 package com.geekbrains.brains.cloud.client;
 
 
+import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.fxml.FXML;
@@ -9,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
+import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.URL;
@@ -58,49 +60,52 @@ public class Controller implements Initializable {
     boolean isAuthorized;
     CountDownLatch countDownLatch;
 
-    public Controller() throws IOException {
-        network = new Network(this);
-    }
-
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         deleteFileBtn.disableProperty().bind(simpleBooleanProperty);
         receiveFileBtn.disableProperty().bind(simpleBooleanProperty);
         renameFileBtn.disableProperty().bind(simpleBooleanProperty);
         initializeDragAndDropLabel();
+        try {
+            network = new Network(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("File propalo");
+            System.exit(1);
+        }
     }
 
 
-    public void login() throws IOException {
+    public void login() {
         network.login();
     }
 
-    public void register() throws IOException {
+    public void register() {
         network.register();
     }
 
-    public void unlogin() throws IOException {
+    public void unlogin() {
         network.unlogin();
     }
 
-    public void transferFile() throws IOException {
+    public void transferFile() {
         network.transferFile();
     }
 
-    public void receiveFile() throws IOException {
+    public void receiveFile() {
         network.receiveFile();
     }
 
-    public void deleteFile() throws IOException {
+    public void deleteFile() {
         network.deleteFile();
     }
 
-    public void renameFile() throws IOException, InterruptedException {
+    public void renameFile() {
         simpleBooleanProperty.set(true);
         network.renameFile();
     }
 
-    public void rename() throws IOException {
+    public void rename() {
         network.rename();
         simpleBooleanProperty.set(false);
     }
@@ -147,11 +152,7 @@ public class Controller implements Initializable {
                 for (File o : db.getFiles()) {
                     network.filesForTransfer.add(o.getAbsolutePath());
                 }
-                try {
-                    transferFile();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                transferFile();
                 filesDragAndDrop.setText("Drop files here!");
                 success = true;
             }

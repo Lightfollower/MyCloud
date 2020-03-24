@@ -1,5 +1,7 @@
 package com.geekbrains.brains.cloud.client;
 
+import javafx.scene.control.Alert;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -40,6 +42,7 @@ public class Network {
     long fileSize;
     byte[] filenameBytes;
     ByteBuffer byteBuffer;
+    Alert alert;
 
     public Network(Controller controller) throws IOException {
         this.controller = controller;
@@ -50,102 +53,151 @@ public class Network {
         PORT = Integer.parseInt(properties.getProperty("port"));
         byteBuffer = ByteBuffer.allocate(1024 * 1024 * 8);
         filesForTransfer = new ArrayList<>();
+        alert = new Alert(Alert.AlertType.ERROR);
         startClient();
     }
 
     public void startClient() {
-        try {
-            socketChannel = SocketChannel.open();
-            socketChannel.connect(new InetSocketAddress(IP_ADDRESS, PORT));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        new Thread(() -> {
+            while (true) {
+                try {
+                    controller.infoLabel.setText("Connecting");
+                    socketChannel = SocketChannel.open();
+                    socketChannel.connect(new InetSocketAddress(IP_ADDRESS, PORT));
+                    controller.infoLabel.setText("Connected");
+                    break;
+                } catch (IOException e) {
+                    controller.infoLabel.setText("Connection refused");
+                    e.printStackTrace();
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        }).start();
     }
 
-    public void login() throws IOException {
-        byte[] bytes = controller.loginField.getText().getBytes();
+    public void login() {
+        filenameBytes = controller.loginField.getText().getBytes();
         byteBuffer.put(LOGIN_CODE);
-        byteBuffer.put((byte) bytes.length);
-        byteBuffer.put(bytes);
-        bytes = controller.passwordFiled.getText().getBytes();
-        byteBuffer.put((byte) bytes.length);
-        byteBuffer.put(bytes);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        filenameBytes = controller.passwordFiled.getText().getBytes();
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
         byteBuffer.flip();
-        socketChannel.write(byteBuffer);
-        byteBuffer.clear();
-        socketChannel.read(byteBuffer);
-        byteBuffer.flip();
-        byte b = byteBuffer.get();
-        byteBuffer.clear();
-        if (b == 1) {
-            System.out.println("Password accepted");
-            controller.isAuthorized = true;
-            controller.setAuthorized();
-            controller.loginField.clear();
-            controller.passwordFiled.clear();
-            getStorage();
-        } else {
-            System.out.println("login or password incorrect");
+        try {
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+            byte b = byteBuffer.get();
+            byteBuffer.clear();
+            if (b == 1) {
+                System.out.println("Password accepted");
+                controller.isAuthorized = true;
+                controller.setAuthorized();
+                controller.loginField.clear();
+                controller.passwordFiled.clear();
+                getStorage();
+                controller.infoLabel.setText("");
+            } else {
+                System.out.println("login or password incorrect");
+            }
+        } catch (IOException e) {
+            alert.setContentText("Server disconnected");
+            alert.show();
+            e.printStackTrace();
+            byteBuffer.clear();
+            startClient();
         }
     }
 
-    public void register() throws IOException {
-        byte[] bytes = controller.loginField.getText().getBytes();
+
+    public void register() {
+        filenameBytes = controller.loginField.getText().getBytes();
         byteBuffer.put(REGISTER_CODE);
-        byteBuffer.put((byte) bytes.length);
-        byteBuffer.put(bytes);
-        bytes = controller.passwordFiled.getText().getBytes();
-        byteBuffer.put((byte) bytes.length);
-        byteBuffer.put(bytes);
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
+        filenameBytes = controller.passwordFiled.getText().getBytes();
+        byteBuffer.put((byte) filenameBytes.length);
+        byteBuffer.put(filenameBytes);
         byteBuffer.flip();
-        socketChannel.write(byteBuffer);
-        byteBuffer.clear();
-        socketChannel.read(byteBuffer);
-        byteBuffer.flip();
-        byte b = byteBuffer.get();
-        byteBuffer.clear();
-        if (b == 1) {
-            System.out.println("User registered");
-            controller.isAuthorized = true;
-            controller.setAuthorized();
-            controller.loginField.clear();
-            controller.passwordFiled.clear();
-            getStorage();
-        } else {
-            System.out.println("Login busy");
+        try {
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+            byte b = byteBuffer.get();
+            byteBuffer.clear();
+            if (b == 1) {
+                System.out.println("User registered");
+                controller.isAuthorized = true;
+                controller.setAuthorized();
+                controller.loginField.clear();
+                controller.passwordFiled.clear();
+                getStorage();
+            } else {
+                System.out.println("Login busy");
+            }
+        } catch (IOException e) {
+            alert.setContentText("Server disconnected");
+            alert.show();
+            e.printStackTrace();
+            byteBuffer.clear();
+            startClient();
         }
     }
 
-    public void unlogin() throws IOException {
+    public void unlogin() {
         controller.isAuthorized = false;
         controller.setAuthorized();
         byteBuffer.put(EXIT_CODE);
         byteBuffer.flip();
-        socketChannel.write(byteBuffer);
+        try {
+            socketChannel.write(byteBuffer);
+        } catch (IOException e) {
+            alert.setContentText("Server disconnected");
+            alert.show();
+            e.printStackTrace();
+            startClient();
+        }
         byteBuffer.clear();
     }
 
-    public void transferFile() throws IOException {
+    public void transferFile() {
         for (String s :
                 filesForTransfer) {
-            input = s;
-            file = Paths.get(input);
-            fileChannel = FileChannel.open(file);
-            fileSize = Files.size(file);
-            fileName = file.getFileName().toString();
-            sendMetaInf();
-            System.out.println("transferring file: " + input);
-            System.out.println("start transferring");
-            byteBuffer.clear();
-            long transferred;
-            long position = 0;
-            while ((transferred = fileChannel.transferTo(position, fileSize, socketChannel)) != 0)
-            {
-                position += transferred;
+            file = Paths.get(s);
+            try {
+                fileChannel = FileChannel.open(file);
+                fileSize = Files.size(file);
+            } catch (IOException e) {
+                alert.setContentText("File propalo: " + s);
+                alert.show();
+                e.printStackTrace();
+                break;
             }
-            System.out.println("finished");
-            fileChannel.close();
-            getStorage();
+            fileName = file.getFileName().toString();
+            try {
+                sendMetaInf();
+                System.out.println("transferring file: " + s);
+                System.out.println("start transferring");
+//                byteBuffer.clear();
+                long transferred;
+                long position = 0;
+                while ((transferred = fileChannel.transferTo(position, fileSize, socketChannel)) != 0) {
+                    position += transferred;
+                }
+                System.out.println("finished");
+                fileChannel.close();
+                getStorage();
+            } catch (IOException e) {
+                showAlertAndUnlogin();
+                e.printStackTrace();
+            }
         }
         filesForTransfer.clear();
     }
@@ -162,37 +214,47 @@ public class Network {
         byteBuffer.clear();
     }
 
-    public void receiveFile() throws IOException {
-        input = controller.filesList.getSelectionModel().getSelectedItem();
-        if (input == null)
+    public void receiveFile() {
+        fileName = controller.filesList.getSelectionModel().getSelectedItem();
+        if (fileName == null)
             return;
-        file = Paths.get("brains-cloud-client/" + input);
+        file = Paths.get("brains-cloud-client/" + fileName);
         if (Files.exists(file)) {
             controller.infoLabel.setText("File already exists");
             return;
         }
-        System.out.println("receiving file: " + input);
-        fileName = input;
-        sendMetaInfForReceive();
-        socketChannel.read(byteBuffer);
-        byteBuffer.flip();
-        fileSize = byteBuffer.getLong();
-        byteBuffer.clear();
-
-        Files.createFile(file);
-        fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
-        long position = 0;
-        long received = 0;
-        long bytesLeft = fileSize;
-        while (bytesLeft > received){
-            received = fileChannel.transferFrom(socketChannel, position, fileSize);
-            position += received;
-            bytesLeft -= received;
+        System.out.println("receiving file: " + fileName);
+//        fileName = input;
+        try {
+            sendMetaInfForReceive();
+            socketChannel.read(byteBuffer);
+            byteBuffer.flip();
+            fileSize = byteBuffer.getLong();
+//            byteBuffer.clear();
+            try {
+                Files.createFile(file);
+                fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
+            } catch (IOException e) {
+                alert.setContentText("File propalo: " + fileName);
+                e.printStackTrace();
+                return;
+            }
+            long position = 0;
+            long received = 0;
+            long bytesLeft = fileSize;
+            while (bytesLeft > received) {
+                received = fileChannel.transferFrom(socketChannel, position, fileSize);
+                position += received;
+                bytesLeft -= received;
+            }
+            fileChannel.transferFrom(socketChannel, position, bytesLeft);
+            fileChannel.close();
+            System.out.println("finished");
+            getStorage();
+        } catch (IOException e) {
+            showAlertAndUnlogin();
+            e.printStackTrace();
         }
-        fileChannel.transferFrom(socketChannel, position, bytesLeft);
-        fileChannel.close();
-        System.out.println("finished");
-        getStorage();
     }
 
     public void sendMetaInfForReceive() throws IOException {
@@ -205,7 +267,7 @@ public class Network {
         byteBuffer.clear();
     }
 
-    public void deleteFile() throws IOException {
+    public void deleteFile() {
         input = controller.filesList.getSelectionModel().getSelectedItem();
         if (input == null) {
             return;
@@ -215,17 +277,23 @@ public class Network {
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
-        socketChannel.write(byteBuffer);
-        byteBuffer.clear();
-        getStorage();
+        try {
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            getStorage();
+        } catch (IOException e) {
+            showAlertAndUnlogin();
+            e.printStackTrace();
+            byteBuffer.clear();
+        }
     }
 
     public void renameFile() {
-        input = controller.filesList.getSelectionModel().getSelectedItem();
+        fileName = controller.filesList.getSelectionModel().getSelectedItem();
         if (input == null) {
             return;
         }
-        filenameBytes = input.getBytes();
+        filenameBytes = fileName.getBytes();
         byteBuffer.put(RENAME_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
@@ -234,18 +302,24 @@ public class Network {
         controller.infoLabel.setText("Введите новое имя");
     }
 
-    public void rename() throws IOException {
-        input = controller.renameField.getText();
+    public void rename() {
+        fileName = controller.renameField.getText();
         filenameBytes = input.getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
-        socketChannel.write(byteBuffer);
-        byteBuffer.clear();
-        controller.renameField.setVisible(false);
-        controller.renameField.setManaged(false);
-        controller.infoLabel.setText("");
-        getStorage();
+        try {
+            socketChannel.write(byteBuffer);
+            byteBuffer.clear();
+            controller.renameField.setVisible(false);
+            controller.renameField.setManaged(false);
+            controller.infoLabel.setText("");
+            getStorage();
+        } catch (IOException e) {
+            showAlertAndUnlogin();
+            e.printStackTrace();
+            byteBuffer.clear();
+        }
     }
 
     public void getStorage() throws IOException {
@@ -271,8 +345,19 @@ public class Network {
         byteBuffer.clear();
     }
 
-    public void shutdown() throws IOException {
-        socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
-        socketChannel.close();
+    public void shutdown() {
+        try {
+            socketChannel.write(byteBuffer.put(SHUTDOWN_CODE).flip());
+            socketChannel.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showAlertAndUnlogin() {
+        alert.setContentText("Server disconnected");
+        alert.show();
+        unlogin();
+        startClient();
     }
 }
