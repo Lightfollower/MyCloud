@@ -150,7 +150,6 @@ public class Network {
             {
                 position += transferred;
             }
-            byteBuffer.clear();
             System.out.println("finished");
             fileChannel.close();
             getStorage();
@@ -189,12 +188,15 @@ public class Network {
 
         Files.createFile(file);
         fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
-        while (fileChannel.size() != fileSize) {
-            socketChannel.read(byteBuffer);
-            byteBuffer.flip();
-            fileChannel.write(byteBuffer);
-            byteBuffer.clear();
+        long position = 0;
+        long received = 0;
+        long bytesLeft = fileSize;
+        while (bytesLeft > received){
+            received = fileChannel.transferFrom(socketChannel, position, fileSize);
+            position += received;
+            bytesLeft -= received;
         }
+        fileChannel.transferFrom(socketChannel, position, bytesLeft);
         fileChannel.close();
         System.out.println("finished");
         getStorage();
