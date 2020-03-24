@@ -23,12 +23,12 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
     String newFileName;
     long fileSize;
     ByteBuf buf;
-    FileSender fileSender;
+    FileManager fileManager;
     File folder;
     File[] files;
 
-    public FileStorageHandler(FileSender fileSender, String username) {
-        this.fileSender = fileSender;
+    public FileStorageHandler(FileManager fileManager, String username) {
+        this.fileManager = fileManager;
         this.userName = username;
     }
 
@@ -45,29 +45,29 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
         switch (command) {
             case TRANSFER_FILE_CODE:
                 receiveDataForWriteFile();
-                FileWriterHandler fileWriterHandler = new FileWriterHandler(fileSender, filename, fileSize, userName);
+                FileWriterHandler fileWriterHandler = new FileWriterHandler(fileManager, filename, fileSize, userName);
                 ctx.pipeline().addLast(fileWriterHandler);
                 fileWriterHandler.channelActive(ctx);
                 ctx.pipeline().remove(this);
                 break;
             case RECEIVE_FILE_CODE:
                 receiveDataForSendFile();
-                fileSender.sendFile(ctx, filename);
+                fileManager.sendFile(ctx, filename);
                 break;
             case GET_STORAGE_CODE:
                 sendStorageToClient(ctx);
                 break;
             case DELETE_FILE_CODE:
                 receiveDataForSendFile();
-                fileSender.deleteFile(filename);
+                fileManager.deleteFile(filename);
                 break;
             case RENAME_FILE_CODE:
                 receiveDataForRenameFile();
-                fileSender.renameFile(filename, newFileName);
+                fileManager.renameFile(filename, newFileName);
                 break;
             case EXIT_CODE:
                 System.out.println("exit");
-                AuthorizationHandler authorizationHandler = new AuthorizationHandler(fileSender);
+                AuthorizationHandler authorizationHandler = new AuthorizationHandler(fileManager);
                 ctx.pipeline().addFirst(authorizationHandler);
                 authorizationHandler.channelActive(ctx);
                 ctx.pipeline().remove(this);

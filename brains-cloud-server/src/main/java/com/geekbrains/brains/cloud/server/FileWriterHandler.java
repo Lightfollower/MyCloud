@@ -7,15 +7,15 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.io.*;
 
 public class FileWriterHandler extends ChannelInboundHandlerAdapter {
-    FileSender fileSender;
+    FileManager fileManager;
     File file;
     String filename;
     String userName;
     long fileSize;
     BufferedOutputStream out;
 
-    public FileWriterHandler(FileSender fileSender, String filename, long fileSize, String username) {
-        this.fileSender = fileSender;
+    public FileWriterHandler(FileManager fileManager, String filename, long fileSize, String username) {
+        this.fileManager = fileManager;
         this.filename = filename;
         this.fileSize = fileSize;
         this.userName = username;
@@ -31,7 +31,7 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
         if (fileSize == 0) {
             out.close();
             System.out.println("fileReceived");
-            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, userName);
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, userName);
             ctx.pipeline().addLast(fileStorageHandler);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().remove(this);
@@ -49,7 +49,7 @@ public class FileWriterHandler extends ChannelInboundHandlerAdapter {
         if (fileSize == 0) {
             out.close();
             System.out.println("fileReceived");
-            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, userName);
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, userName);
             ctx.pipeline().addLast(fileStorageHandler);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().remove(this);

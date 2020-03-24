@@ -1,12 +1,5 @@
 package com.geekbrains.brains.cloud.client;
 
-import javafx.application.Platform;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -21,10 +14,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CountDownLatch;
 
 public class Network {
-    Controller controller;
     final byte SHUTDOWN_CODE = 21;
     final byte TRANSFER_FILE_CODE = 15;
     final byte RECEIVE_FILE_CODE = 16;
@@ -36,6 +27,8 @@ public class Network {
     final byte REGISTER_CODE = 22;
     final String IP_ADDRESS;
     final int PORT;
+
+    Controller controller;
 
     Properties properties;
     List<String> filesForTransfer;
@@ -227,8 +220,7 @@ public class Network {
         getStorage();
     }
 
-    public void renameFile() throws IOException, InterruptedException {
-        controller.countDownLatch = new CountDownLatch(1);
+    public void renameFile() {
         input = controller.filesList.getSelectionModel().getSelectedItem();
         if (input == null) {
             return;
@@ -237,28 +229,22 @@ public class Network {
         byteBuffer.put(RENAME_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
-        try {
-            Stage stage = new Stage();
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Rename.fxml"));
-            Parent root = loader.load();
-            RenameController lc = loader.getController();
-            lc.id = 100;
-            lc.backController = controller;
+        controller.renameField.setVisible(true);
+        controller.renameField.setManaged(true);
+        controller.infoLabel.setText("Введите новое имя");
+    }
 
-            stage.setTitle("Enter new name");
-            stage.setScene(new Scene(root, 400, 200));
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.showAndWait();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        controller.countDownLatch.await();
+    public void rename() throws IOException {
+        input = controller.renameField.getText();
         filenameBytes = input.getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
+        controller.renameField.setVisible(false);
+        controller.renameField.setManaged(false);
+        controller.infoLabel.setText("");
         getStorage();
     }
 
@@ -279,10 +265,8 @@ public class Network {
             b[i] = byteBuffer.get();
         }
         String[] strings = new String(b).split(System.lineSeparator());
-        Platform.runLater(() -> {
-            controller.filesList.getItems().clear();
-            controller.filesList.getItems().addAll(strings);
-        });
+        controller.refresh(strings);
+
         System.out.print(new String(b));
         byteBuffer.clear();
     }

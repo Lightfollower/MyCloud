@@ -34,8 +34,8 @@ public class Server {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
                             DBService.connect();
-                            FileSender fileSender = new FileSender(ch);
-                            ch.pipeline().addLast( new AuthorizationHandler(fileSender));
+                            FileManager fileManager = new FileManager(ch);
+                            ch.pipeline().addLast( new AuthorizationHandler(fileManager));
                         }
                     })
                     .childOption(ChannelOption.SO_KEEPALIVE, true);

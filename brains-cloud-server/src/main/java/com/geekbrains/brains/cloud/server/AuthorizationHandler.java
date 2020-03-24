@@ -6,7 +6,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.sql.SQLException;
 
 public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
     final byte LOGIN_CODE = 21;
@@ -17,10 +16,10 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
     String login;
     String password;
     Boolean authorized;
-    FileSender fileSender;
+    FileManager fileManager;
 
-    public AuthorizationHandler(FileSender fileSender) {
-        this.fileSender = fileSender;
+    public AuthorizationHandler(FileManager fileManager) {
+        this.fileManager = fileManager;
     }
 
     @Override
@@ -50,7 +49,7 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         if (authorized) {
             File userFolder = new File("/cloud/myCloud/" + login);
                 userFolder.mkdir();
-            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, login);
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, login);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().addFirst(fileStorageHandler);
             ctx.pipeline().remove(this);
@@ -68,7 +67,7 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         ctx.writeAndFlush(buf);
         buf.clear();
         if (authorized) {
-            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileSender, login);
+            FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, login);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().addFirst(fileStorageHandler);
             ctx.pipeline().remove(this);

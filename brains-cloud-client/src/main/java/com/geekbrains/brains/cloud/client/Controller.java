@@ -1,12 +1,11 @@
 package com.geekbrains.brains.cloud.client;
 
 
+import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
@@ -45,6 +44,16 @@ public class Controller implements Initializable {
     @FXML
     Label infoLabel;
 
+    @FXML
+    TextField renameField;
+
+    @FXML
+    Button receiveFileBtn;
+    @FXML
+    Button deleteFileBtn;
+    @FXML
+    Button renameFileBtn;
+    SimpleBooleanProperty simpleBooleanProperty = new SimpleBooleanProperty(false);
 
     boolean isAuthorized;
     CountDownLatch countDownLatch;
@@ -55,6 +64,9 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        deleteFileBtn.disableProperty().bind(simpleBooleanProperty);
+        receiveFileBtn.disableProperty().bind(simpleBooleanProperty);
+        renameFileBtn.disableProperty().bind(simpleBooleanProperty);
         initializeDragAndDropLabel();
     }
 
@@ -84,7 +96,13 @@ public class Controller implements Initializable {
     }
 
     public void renameFile() throws IOException, InterruptedException {
+        simpleBooleanProperty.set(true);
         network.renameFile();
+    }
+
+    public void rename() throws IOException {
+        network.rename();
+        simpleBooleanProperty.set(false);
     }
 
     public void setAuthorized() {
@@ -139,6 +157,13 @@ public class Controller implements Initializable {
             }
             event.setDropCompleted(success);
             event.consume();
+        });
+    }
+
+    public void refresh(String[] strings) {
+        Platform.runLater(() -> {
+            filesList.getItems().clear();
+            filesList.getItems().addAll(strings);
         });
     }
 }
