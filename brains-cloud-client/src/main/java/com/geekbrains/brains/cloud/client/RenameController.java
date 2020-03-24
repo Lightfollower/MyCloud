@@ -18,7 +18,7 @@ public class RenameController {
     public Controller backController;
 
     public void rename(ActionEvent actionEvent) {
-        backController.input = newName.getText();
+        backController.network.input = newName.getText();
         backController.countDownLatch.countDown();
         System.out.println(newName.getText());
         globParent.getScene().getWindow().hide();
