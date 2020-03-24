@@ -55,7 +55,7 @@ public class Network {
         properties.load(new FileReader(propertiesFile));
         IP_ADDRESS = properties.getProperty("ipAddress");
         PORT = Integer.parseInt(properties.getProperty("port"));
-        byteBuffer = ByteBuffer.allocate(1024*1024*8);
+        byteBuffer = ByteBuffer.allocate(1024 * 1024 * 8);
         filesForTransfer = new ArrayList<>();
         startClient();
     }
@@ -144,14 +144,12 @@ public class Network {
             System.out.println("transferring file: " + input);
             System.out.println("start transferring");
             byteBuffer.clear();
-            int n = fileChannel.read(byteBuffer);
-            do {
-                byteBuffer.flip();
-                socketChannel.write(byteBuffer);
-                byteBuffer.clear();
-                n = fileChannel.read(byteBuffer);
+            long transferred;
+            long position = 0;
+            while ((transferred = fileChannel.transferTo(position, fileSize, socketChannel)) != 0)
+            {
+                position += transferred;
             }
-            while (n > -1);
             byteBuffer.clear();
             System.out.println("finished");
             fileChannel.close();
