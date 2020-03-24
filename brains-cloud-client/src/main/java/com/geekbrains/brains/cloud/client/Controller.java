@@ -58,7 +58,6 @@ public class Controller implements Initializable {
     SimpleBooleanProperty simpleBooleanProperty = new SimpleBooleanProperty(false);
 
     boolean isAuthorized;
-    CountDownLatch countDownLatch;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -70,7 +69,7 @@ public class Controller implements Initializable {
             network = new Network(this);
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("File propalo");
+            System.out.println("File properties propalo");
             System.exit(1);
         }
     }
@@ -101,7 +100,6 @@ public class Controller implements Initializable {
     }
 
     public void renameFile() {
-        simpleBooleanProperty.set(true);
         network.renameFile();
     }
 
@@ -132,7 +130,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void shutdown() throws IOException {
+    public void shutdown() {
         network.shutdown();
     }
 

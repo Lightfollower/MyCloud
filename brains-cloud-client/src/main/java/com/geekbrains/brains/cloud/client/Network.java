@@ -34,7 +34,6 @@ public class Network {
 
     Properties properties;
     List<String> filesForTransfer;
-    String input;
     SocketChannel socketChannel;
     FileChannel fileChannel;
     String fileName;
@@ -58,7 +57,7 @@ public class Network {
     }
 
     public void startClient() {
-        new Thread(() -> {
+        Thread thread = new Thread(() -> {
             while (true) {
                 try {
                     controller.infoLabel.setText("Connecting");
@@ -76,7 +75,9 @@ public class Network {
                     }
                 }
             }
-        }).start();
+        });
+        thread.setDaemon(true);
+        thread.start();
     }
 
     public void login() {
@@ -152,10 +153,15 @@ public class Network {
     }
 
     public void unlogin() {
+        byteBuffer.clear();
         controller.isAuthorized = false;
         controller.setAuthorized();
         byteBuffer.put(EXIT_CODE);
         byteBuffer.flip();
+        controller.renameField.setManaged(false);
+        controller.renameField.setVisible(false);
+        controller.simpleBooleanProperty.set(false);
+        controller.renameField.clear();
         try {
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
@@ -185,7 +191,6 @@ public class Network {
                 sendMetaInf();
                 System.out.println("transferring file: " + s);
                 System.out.println("start transferring");
-//                byteBuffer.clear();
                 long transferred;
                 long position = 0;
                 while ((transferred = fileChannel.transferTo(position, fileSize, socketChannel)) != 0) {
@@ -224,13 +229,12 @@ public class Network {
             return;
         }
         System.out.println("receiving file: " + fileName);
-//        fileName = input;
         try {
             sendMetaInfForReceive();
             socketChannel.read(byteBuffer);
             byteBuffer.flip();
             fileSize = byteBuffer.getLong();
-//            byteBuffer.clear();
+            byteBuffer.clear();
             try {
                 Files.createFile(file);
                 fileChannel = FileChannel.open(file, StandardOpenOption.WRITE);
@@ -258,7 +262,7 @@ public class Network {
     }
 
     public void sendMetaInfForReceive() throws IOException {
-        filenameBytes = input.getBytes();
+        filenameBytes = fileName.getBytes();
         byteBuffer.put(RECEIVE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
@@ -268,11 +272,11 @@ public class Network {
     }
 
     public void deleteFile() {
-        input = controller.filesList.getSelectionModel().getSelectedItem();
-        if (input == null) {
+        fileName = controller.filesList.getSelectionModel().getSelectedItem();
+        if (fileName == null) {
             return;
         }
-        filenameBytes = input.getBytes();
+        filenameBytes = fileName.getBytes();
         byteBuffer.put(DELETE_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
@@ -290,9 +294,11 @@ public class Network {
 
     public void renameFile() {
         fileName = controller.filesList.getSelectionModel().getSelectedItem();
-        if (input == null) {
+        if (fileName == null) {
+            System.out.println("exit");
             return;
         }
+        controller.simpleBooleanProperty.set(true);
         filenameBytes = fileName.getBytes();
         byteBuffer.put(RENAME_FILE_CODE);
         byteBuffer.put((byte) filenameBytes.length);
@@ -304,7 +310,7 @@ public class Network {
 
     public void rename() {
         fileName = controller.renameField.getText();
-        filenameBytes = input.getBytes();
+        filenameBytes = fileName.getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
@@ -314,6 +320,7 @@ public class Network {
             controller.renameField.setVisible(false);
             controller.renameField.setManaged(false);
             controller.infoLabel.setText("");
+            controller.renameField.clear();
             getStorage();
         } catch (IOException e) {
             showAlertAndUnlogin();
