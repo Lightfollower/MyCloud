@@ -1,5 +1,6 @@
 package com.geekbrains.brains.cloud.client;
 
+import com.sun.org.slf4j.internal.LoggerFactory;
 import javafx.scene.control.Alert;
 
 import java.io.File;
@@ -42,6 +43,7 @@ public class Network {
     byte[] filenameBytes;
     ByteBuffer byteBuffer;
     Alert alert;
+    LoggerFactory loggerFactory;
 
     public Network(Controller controller) throws IOException {
         this.controller = controller;
@@ -54,6 +56,7 @@ public class Network {
         filesForTransfer = new ArrayList<>();
         alert = new Alert(Alert.AlertType.ERROR);
         startClient();
+        LoggerFactory loggerFactory;
     }
 
     public void startClient() {
