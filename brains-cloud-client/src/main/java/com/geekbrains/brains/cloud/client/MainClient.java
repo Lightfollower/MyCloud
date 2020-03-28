@@ -28,10 +28,6 @@ public class MainClient extends Application {
 
     @Override
     public void stop() {
-        try {
             controller.shutdown();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }
