@@ -1,7 +1,6 @@
 package com.geekbrains.brains.cloud.client;
 
 
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.fxml.FXML;
@@ -10,12 +9,10 @@ import javafx.scene.control.*;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
-import javafx.stage.Stage;
 
 import java.io.*;
 import java.net.URL;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 public class Controller implements Initializable {
     Network network;
@@ -84,7 +81,7 @@ public class Controller implements Initializable {
     }
 
     public void unlogin() {
-        network.unlogin();
+        network.logOut();
     }
 
     public void transferFile() {
