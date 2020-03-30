@@ -3,11 +3,14 @@ package com.geekbrains.brains.cloud.server;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.nio.charset.Charset;
 
 public class FileStorageHandler extends ChannelInboundHandlerAdapter {
+    protected static final Logger LOGGER = LogManager.getLogger(FileStorageHandler.class);
     final byte SHUTDOWN_CODE = 21;
     final byte TRANSFER_FILE_CODE = 15;
     final byte RECEIVE_FILE_CODE = 16;
@@ -30,17 +33,18 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
     public FileStorageHandler(FileManager fileManager, String username) {
         this.fileManager = fileManager;
         this.userName = username;
+
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("Handler here " + userName);
+        LOGGER.info("Handler here " + userName);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         buf = (ByteBuf) msg;
-        System.out.println("command: " + (command = buf.readByte()));
+        LOGGER.info("command: " + (command = buf.readByte()));
 
         switch (command) {
             case TRANSFER_FILE_CODE:
@@ -66,14 +70,14 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
                 fileManager.renameFile(filename, newFileName);
                 break;
             case EXIT_CODE:
-                System.out.println("exit");
+                LOGGER.info("exit");
                 AuthorizationHandler authorizationHandler = new AuthorizationHandler(fileManager);
                 ctx.pipeline().addFirst(authorizationHandler);
                 authorizationHandler.channelActive(ctx);
                 ctx.pipeline().remove(this);
                 break;
             case SHUTDOWN_CODE:
-                System.out.println("shutdown");
+                LOGGER.info("shutdown");
                 ctx.close();
                 break;
         }
@@ -87,25 +91,25 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void receiveDataForWriteFile() {
-        System.out.println("filename length = " + (fileNameLength = buf.readByte()));
-        System.out.println("filename: " + (filename = userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
-        System.out.println("file size: " + (fileSize = buf.readLong()));
+        LOGGER.info("filename length = " + (fileNameLength = buf.readByte()));
+        LOGGER.info("filename: " + (filename = "server storage/" + userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
+        LOGGER.info("file size: " + (fileSize = buf.readLong()));
     }
 
     private void receiveDataForSendFile() {
-        System.out.println("filename length = " + (fileNameLength = buf.readByte()));
-        System.out.println("filename: " + (filename = userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
+        LOGGER.info("filename length = " + (fileNameLength = buf.readByte()));
+        LOGGER.info("filename: " + (filename = "server storage/" + userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
     }
 
     private void receiveDataForRenameFile() {
-        System.out.println("filename length = " + (fileNameLength = buf.readByte()));
-        System.out.println("filename: " + (filename = userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
-        System.out.println("filename length = " + (fileNameLength = buf.readByte()));
-        System.out.println("new filename: " + (newFileName = userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
+        LOGGER.info("filename length = " + (fileNameLength = buf.readByte()));
+        LOGGER.info("filename: " + (filename = "server storage/" + userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
+        LOGGER.info("filename length = " + (fileNameLength = buf.readByte()));
+        LOGGER.info("new filename: " + (newFileName = "server storage/" + userName + "/" + buf.readCharSequence(fileNameLength, Charset.defaultCharset()).toString()));
     }
 
     private void sendStorageToClient(ChannelHandlerContext ctx) {
-        folder = new File("/cloud/myCloud/" + userName);
+        folder = new File("server storage/" + userName);
         files = folder.listFiles();
         StringBuilder stringBuilder = new StringBuilder();
         ByteBuf buf = ctx.alloc().buffer(2048);

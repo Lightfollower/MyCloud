@@ -27,10 +27,10 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         buf = (ByteBuf) msg;
         byte b = buf.readByte();
         switch (b) {
-            case 21:
+            case LOGIN_CODE:
                 login(ctx);
                 break;
-            case 22:
+            case REGISTER_CODE:
                 register(ctx);
                 break;
         }
@@ -47,8 +47,8 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         ctx.writeAndFlush(buf);
         buf.clear();
         if (authorized) {
-            File userFolder = new File("/cloud/myCloud/" + login);
-                userFolder.mkdir();
+            File userFolder = new File("server storage/" + login);
+            userFolder.mkdir();
             FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, login);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().addFirst(fileStorageHandler);
@@ -67,6 +67,9 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
         ctx.writeAndFlush(buf);
         buf.clear();
         if (authorized) {
+            File userFolder = new File("server storage/" + login);
+            if (!userFolder.exists())
+                userFolder.mkdirs();
             FileStorageHandler fileStorageHandler = new FileStorageHandler(fileManager, login);
             fileStorageHandler.channelActive(ctx);
             ctx.pipeline().addFirst(fileStorageHandler);

@@ -49,6 +49,10 @@ public class Network {
 
     public Network(Controller controller) throws IOException {
         this.controller = controller;
+        Path path = Paths.get("client storage/");
+        if (!Files.exists(path))
+            Files.createDirectory(path);
+//        File propertiesFile = new File(this.getClass().getClassLoader().getResource("address.properties").getFile());
         File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\address.properties");
         properties = new Properties();
         properties.load(new FileReader(propertiesFile));
@@ -253,7 +257,7 @@ public class Network {
         if (fileName == null)
             return;
         LOGGER.info("Receiving file: " + fileName);
-        file = Paths.get("brains-cloud-client/" + fileName);
+        file = Paths.get("client storage/" + fileName);
         if (Files.exists(file)) {
             LOGGER.info("File already exist");
             controller.infoLabel.setText("File already exists");
