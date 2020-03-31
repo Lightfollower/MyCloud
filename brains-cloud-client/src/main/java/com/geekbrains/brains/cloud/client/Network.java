@@ -53,8 +53,9 @@ public class Network {
         if (!Files.exists(path))
             Files.createDirectory(path);
 //        File propertiesFile = new File(this.getClass().getClassLoader().getResource("address.properties").getFile());
-        File propertiesFile = new File("F:\\cloud\\MyCloud\\brains-cloud-client\\src\\main\\resources\\address.properties");
+        File propertiesFile = new File("address.properties");
         properties = new Properties();
+        LOGGER.info("Try to load properties");
         properties.load(new FileReader(propertiesFile));
         LOGGER.info("properties loaded");
         IP_ADDRESS = properties.getProperty("ipAddress");
