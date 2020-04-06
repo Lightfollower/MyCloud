@@ -12,7 +12,6 @@
     <artifactId>brains-cloud-client</artifactId>
     <packaging>jar</packaging>
 
-
     <dependencies>
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -27,7 +26,6 @@
             <artifactId>javafx-fxml</artifactId>
             <version>13</version>
         </dependency>
-
     </dependencies>
 
     <build>

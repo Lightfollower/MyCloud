@@ -22,7 +22,7 @@ public class DBService {
         return false;
     }
 
-    public static Boolean register(String login, String pass)  {
+    public static boolean register(String login, String pass)  {
         String qry = String.format("INSERT INTO cloud.users (User, Password) VALUES ('%s', '%s')", login, pass);
         try {
              stmt.execute(qry);

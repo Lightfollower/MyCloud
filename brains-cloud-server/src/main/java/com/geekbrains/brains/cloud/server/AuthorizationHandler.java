@@ -15,7 +15,7 @@ public class AuthorizationHandler extends ChannelInboundHandlerAdapter {
 
     String login;
     String password;
-    Boolean authorized;
+    boolean authorized;
     FileManager fileManager;
 
     public AuthorizationHandler(FileManager fileManager) {
