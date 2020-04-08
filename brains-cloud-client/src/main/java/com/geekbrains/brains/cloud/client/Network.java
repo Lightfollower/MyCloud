@@ -40,9 +40,6 @@ public class Network {
     List<String> filesForTransfer;
     SocketChannel socketChannel;
     FileChannel fileChannel;
-    String fileName;
-    Path file;
-    long fileSize;
     byte[] tempTextBytes;
     ByteBuffer byteBuffer;
     Alert alert;
@@ -196,10 +193,11 @@ public class Network {
     }
 
     public void transferFile() {
+        long fileSize;
         for (String s :
                 filesForTransfer) {
             LOGGER.info("Transferring file: " + s);
-            file = Paths.get(s);
+            Path file = Paths.get(s);
             try {
                 fileChannel = FileChannel.open(file);
                 fileSize = Files.size(file);
@@ -210,9 +208,8 @@ public class Network {
                 e.printStackTrace();
                 continue;
             }
-            fileName = file.getFileName().toString();
             try {
-                sendMetaInf();
+                sendMetaInf(file);
                 System.out.println("transferring file: " + s);
                 System.out.println("start transferring");
                 long transferred;
@@ -233,15 +230,15 @@ public class Network {
         filesForTransfer.clear();
     }
 
-    public void sendMetaInf() throws IOException {
+    public void sendMetaInf(Path file) throws IOException {
         LOGGER.info("Sending metadata for transferring");
-        tempTextBytes = fileName.getBytes();
+        tempTextBytes = file.getFileName().toString().getBytes();
         byteBuffer.put(TRANSFER_FILE_CODE);
         byteBuffer.put((byte) tempTextBytes.length);
         byteBuffer.put(tempTextBytes);
-        byteBuffer.putLong(fileSize);
-        LOGGER.info("file size = " + fileSize);
-        System.out.println("file size: " + fileSize);
+        byteBuffer.putLong(Files.size(file));
+        LOGGER.info("file size = " + Files.size(file));
+        System.out.println("file size: " + Files.size(file));
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
@@ -249,11 +246,12 @@ public class Network {
     }
 
     public void receiveFile() {
-        fileName = controller.filesList.getSelectionModel().getSelectedItem();
+        long fileSize;
+        String fileName = controller.filesList.getSelectionModel().getSelectedItem();
         if (fileName == null)
             return;
         LOGGER.info("Receiving file: " + fileName);
-        file = Paths.get("client storage/" + fileName);
+        Path file = Paths.get("client storage/" + fileName);
         if (Files.exists(file)) {
             LOGGER.info("File already exist");
             controller.infoLabel.setText("File already exists");
@@ -261,7 +259,7 @@ public class Network {
         }
         System.out.println("receiving file: " + fileName);
         try {
-            sendMetaInfForReceive();
+            sendMetaInfForReceive(fileName);
             socketChannel.read(byteBuffer);
             byteBuffer.flip();
             fileSize = byteBuffer.getLong();
@@ -297,7 +295,7 @@ public class Network {
         }
     }
 
-    public void sendMetaInfForReceive() throws IOException {
+    public void sendMetaInfForReceive(String fileName) throws IOException {
         LOGGER.info("Sending metadata for receive");
         tempTextBytes = fileName.getBytes();
         byteBuffer.put(RECEIVE_FILE_CODE);
@@ -310,7 +308,7 @@ public class Network {
     }
 
     public void deleteFile() {
-        fileName = controller.filesList.getSelectionModel().getSelectedItem();
+        String fileName = controller.filesList.getSelectionModel().getSelectedItem();
         if (fileName == null) {
             return;
         }
@@ -334,7 +332,7 @@ public class Network {
     }
 
     public void renameFile() {
-        fileName = controller.filesList.getSelectionModel().getSelectedItem();
+        String fileName = controller.filesList.getSelectionModel().getSelectedItem();
         if (fileName == null) {
             System.out.println("exit");
             return;
@@ -351,7 +349,7 @@ public class Network {
     }
 
     public void rename() {
-        fileName = controller.renameField.getText();
+        String fileName = controller.renameField.getText();
         tempTextBytes = fileName.getBytes();
         byteBuffer.put((byte) tempTextBytes.length);
         byteBuffer.put(tempTextBytes);
