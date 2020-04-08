@@ -12,7 +12,7 @@
       style="-fx-background-color: linear-gradient(#fff 0%, #eee 10%, #ddd 90%, #bbb 100%);"
       xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.172-ea"
       fx:controller="com.geekbrains.brains.cloud.client.Controller">
-    <Label fx:id="infoLabel" managed="true" visible="true"/>
+    <Label fx:id="infoLabel" />
     <TextField fx:id="renameField" managed="false" visible="false" onAction="#rename"/>
     <HBox fx:id="authPanel">
         <TextField HBox.hgrow="ALWAYS" promptText="Логин" fx:id="loginField"/>
@@ -33,6 +33,6 @@
         </VBox>
     </HBox>
     <HBox fx:id="exitPanel" managed="false" visible="false">
-        <Button onAction="#unlogin" text="Выход"/>
+        <Button onAction="#logOut" text="Выход"/>
     </HBox>
 </VBox>

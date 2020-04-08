@@ -43,7 +43,7 @@ public class Network {
     String fileName;
     Path file;
     long fileSize;
-    byte[] filenameBytes;
+    byte[] tempTextBytes;
     ByteBuffer byteBuffer;
     Alert alert;
 
@@ -107,81 +107,73 @@ public class Network {
 
     public void login() {
         LOGGER.info("Try to login");
-        prepareLoginAndPass(LOGIN_CODE);
         try {
-            socketChannel.write(byteBuffer);
-            LOGGER.info("Waiting for response");
-            byteBuffer.clear();
-            socketChannel.read(byteBuffer);
-            byteBuffer.flip();
-            byte b = byteBuffer.get();
-            byteBuffer.clear();
-            if (b == 1) {
+            byte response = requestServerForAuth(LOGIN_CODE);
+            if (response == 1) {
                 LOGGER.info("Password accepted");
                 System.out.println("Password accepted");
-                controller.isAuthorized = true;
-                controller.setAuthorized();
-                controller.loginField.clear();
-                controller.passwordFiled.clear();
-                getStorage();
-                controller.infoLabel.setText("");
+                setAuthorized();
             } else {
                 LOGGER.info("Access denied");
                 System.out.println("login or password incorrect");
             }
         } catch (IOException e) {
-            LOGGER.error(e.getMessage());
-            alert.setContentText("Server disconnected");
-            alert.show();
-            e.printStackTrace();
-            byteBuffer.clear();
-            startClient();
+            restartClientAfterException(e);
         }
     }
 
-    private void prepareLoginAndPass(byte commandCode) {
-        filenameBytes = controller.loginField.getText().getBytes();
-        byteBuffer.put(commandCode);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
-        filenameBytes = controller.passwordFiled.getText().getBytes();
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
-        byteBuffer.flip();
-    }
-
-
     public void register() {
         LOGGER.info("Try to register");
-        prepareLoginAndPass(REGISTER_CODE);
         try {
-            socketChannel.write(byteBuffer);
-            byteBuffer.clear();
-            LOGGER.info("Waiting for response");
-            socketChannel.read(byteBuffer);
-            byteBuffer.flip();
-            byte b = byteBuffer.get();
-            byteBuffer.clear();
-            if (b == 1) {
+            byte response = requestServerForAuth(REGISTER_CODE);
+            if (response == 1) {
                 LOGGER.info("User registered");
                 System.out.println("User registered");
-                controller.isAuthorized = true;
-                controller.setAuthorized();
-                controller.loginField.clear();
-                controller.passwordFiled.clear();
-                getStorage();
+                setAuthorized();
             } else {
                 LOGGER.info("Login busy");
                 System.out.println("Login busy");
             }
         } catch (IOException e) {
-            LOGGER.error(e.getMessage());
-            alert.setContentText("Server disconnected");
-            alert.show();
-            e.printStackTrace();
-            byteBuffer.clear();
-            startClient();
+            restartClientAfterException(e);
         }
+    }
+
+    private byte requestServerForAuth(byte commandCode) throws IOException {
+        tempTextBytes = controller.loginField.getText().getBytes();
+        byteBuffer.put(commandCode);
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
+        tempTextBytes = controller.passwordFiled.getText().getBytes();
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
+        byteBuffer.flip();
+        socketChannel.write(byteBuffer);
+        LOGGER.info("Waiting for response");
+        byteBuffer.clear();
+        socketChannel.read(byteBuffer);
+        byteBuffer.flip();
+        byte b = byteBuffer.get();
+        byteBuffer.clear();
+        return b;
+    }
+
+    private void setAuthorized() throws IOException {
+        controller.isAuthorized = true;
+        controller.setAuthorized();
+        controller.loginField.clear();
+        controller.passwordFiled.clear();
+        getStorage();
+        controller.infoLabel.setText("");
+    }
+
+    private void restartClientAfterException(IOException e) {
+        LOGGER.error(e.getMessage());
+        alert.setContentText("Server disconnected");
+        alert.show();
+        e.printStackTrace();
+        byteBuffer.clear();
+        startClient();
     }
 
     public void logOut() {
@@ -198,11 +190,7 @@ public class Network {
         try {
             socketChannel.write(byteBuffer);
         } catch (IOException e) {
-            LOGGER.error(e.getMessage());
-            alert.setContentText("Server disconnected");
-            alert.show();
-            e.printStackTrace();
-            startClient();
+            restartClientAfterException(e);
         }
         byteBuffer.clear();
     }
@@ -220,7 +208,7 @@ public class Network {
                 alert.setContentText("File propalo: " + s);
                 alert.show();
                 e.printStackTrace();
-                break;
+                continue;
             }
             fileName = file.getFileName().toString();
             try {
@@ -238,7 +226,7 @@ public class Network {
                 getStorage();
             } catch (IOException e) {
                 LOGGER.error(e.getMessage());
-                showAlertAndLogOut();
+                logOut();
                 e.printStackTrace();
             }
         }
@@ -247,10 +235,10 @@ public class Network {
 
     public void sendMetaInf() throws IOException {
         LOGGER.info("Sending metadata for transferring");
-        filenameBytes = fileName.getBytes();
+        tempTextBytes = fileName.getBytes();
         byteBuffer.put(TRANSFER_FILE_CODE);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
         byteBuffer.putLong(fileSize);
         LOGGER.info("file size = " + fileSize);
         System.out.println("file size: " + fileSize);
@@ -304,17 +292,17 @@ public class Network {
             getStorage();
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
-            showAlertAndLogOut();
+            logOut();
             e.printStackTrace();
         }
     }
 
     public void sendMetaInfForReceive() throws IOException {
         LOGGER.info("Sending metadata for receive");
-        filenameBytes = fileName.getBytes();
+        tempTextBytes = fileName.getBytes();
         byteBuffer.put(RECEIVE_FILE_CODE);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
         byteBuffer.flip();
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
@@ -327,10 +315,10 @@ public class Network {
             return;
         }
         LOGGER.info("Deleting file: " + fileName);
-        filenameBytes = fileName.getBytes();
+        tempTextBytes = fileName.getBytes();
         byteBuffer.put(DELETE_FILE_CODE);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
         byteBuffer.flip();
         try {
             LOGGER.info("Sending metadata for delete");
@@ -339,7 +327,7 @@ public class Network {
             getStorage();
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
-            showAlertAndLogOut();
+            logOut();
             e.printStackTrace();
             byteBuffer.clear();
         }
@@ -353,10 +341,10 @@ public class Network {
         }
         LOGGER.info("Renaming file: " + fileName);
         controller.simpleBooleanProperty.set(true);
-        filenameBytes = fileName.getBytes();
+        tempTextBytes = fileName.getBytes();
         byteBuffer.put(RENAME_FILE_CODE);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
         controller.renameField.setVisible(true);
         controller.renameField.setManaged(true);
         controller.infoLabel.setText("Введите новое имя");
@@ -364,9 +352,9 @@ public class Network {
 
     public void rename() {
         fileName = controller.renameField.getText();
-        filenameBytes = fileName.getBytes();
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
+        tempTextBytes = fileName.getBytes();
+        byteBuffer.put((byte) tempTextBytes.length);
+        byteBuffer.put(tempTextBytes);
         byteBuffer.flip();
         try {
             LOGGER.info("Sending metadata for rename");
@@ -379,7 +367,7 @@ public class Network {
             getStorage();
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
-            showAlertAndLogOut();
+            logOut();
             e.printStackTrace();
             byteBuffer.clear();
         }
@@ -390,11 +378,11 @@ public class Network {
         System.out.println("receiving file list from server");
         byteBuffer.put(GET_STORAGE_CODE);
         byteBuffer.flip();
-//        try {
-//            Thread.sleep(10);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         LOGGER.info("Sending request for file list");
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
@@ -418,12 +406,5 @@ public class Network {
             LOGGER.error(e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    private void showAlertAndLogOut() {
-        alert.setContentText("Server disconnected");
-        alert.show();
-        logOut();
-        startClient();
     }
 }

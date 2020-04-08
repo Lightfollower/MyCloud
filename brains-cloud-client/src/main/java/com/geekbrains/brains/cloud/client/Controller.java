@@ -80,7 +80,7 @@ public class Controller implements Initializable {
         network.register();
     }
 
-    public void unlogin() {
+    public void logOut() {
         network.logOut();
     }
 
