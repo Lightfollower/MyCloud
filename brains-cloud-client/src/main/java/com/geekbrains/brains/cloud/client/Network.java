@@ -69,6 +69,7 @@ public class Network {
     public void startClient() {
         LOGGER.info("Staring client");
         Thread thread = new Thread(() -> {
+            int count = 0;
             while (true) {
                 try {
                     LOGGER.info("Try to connect");
@@ -84,7 +85,16 @@ public class Network {
                     e.printStackTrace();
                     LOGGER.error(e.getMessage());
                     try {
-                        Thread.sleep(1000);
+                        if (count < 5) {
+                            Thread.sleep(1000);
+                        } else if (count < 10) {
+                            Thread.sleep(5000);
+                        } else if (count < 15) {
+                            Thread.sleep(20000);
+                        } else {
+                            Thread.sleep(30000);
+                        }
+                        count++;
                     } catch (InterruptedException ex) {
                         ex.printStackTrace();
                     }
