@@ -107,14 +107,7 @@ public class Network {
 
     public void login() {
         LOGGER.info("Try to login");
-        filenameBytes = controller.loginField.getText().getBytes();
-        byteBuffer.put(LOGIN_CODE);
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
-        filenameBytes = controller.passwordFiled.getText().getBytes();
-        byteBuffer.put((byte) filenameBytes.length);
-        byteBuffer.put(filenameBytes);
-        byteBuffer.flip();
+        prepareLoginAndPass(LOGIN_CODE);
         try {
             socketChannel.write(byteBuffer);
             LOGGER.info("Waiting for response");
@@ -146,17 +139,21 @@ public class Network {
         }
     }
 
-
-    public void register() {
-        LOGGER.info("Try to register");
+    private void prepareLoginAndPass(byte commandCode) {
         filenameBytes = controller.loginField.getText().getBytes();
-        byteBuffer.put(REGISTER_CODE);
+        byteBuffer.put(commandCode);
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         filenameBytes = controller.passwordFiled.getText().getBytes();
         byteBuffer.put((byte) filenameBytes.length);
         byteBuffer.put(filenameBytes);
         byteBuffer.flip();
+    }
+
+
+    public void register() {
+        LOGGER.info("Try to register");
+        prepareLoginAndPass(REGISTER_CODE);
         try {
             socketChannel.write(byteBuffer);
             byteBuffer.clear();
@@ -393,11 +390,11 @@ public class Network {
         System.out.println("receiving file list from server");
         byteBuffer.put(GET_STORAGE_CODE);
         byteBuffer.flip();
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            Thread.sleep(10);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         LOGGER.info("Sending request for file list");
         socketChannel.write(byteBuffer);
         byteBuffer.clear();
