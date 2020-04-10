@@ -25,7 +25,6 @@ public class Network {
     final byte SHUTDOWN_CODE = 21;
     final byte TRANSFER_FILE_CODE = 15;
     final byte RECEIVE_FILE_CODE = 16;
-    final byte GET_STORAGE_CODE = 17;
     final byte EXIT_CODE = 18;
     final byte DELETE_FILE_CODE = 19;
     final byte RENAME_FILE_CODE = 20;
@@ -287,7 +286,6 @@ public class Network {
             fileChannel.close();
             LOGGER.info("File received: " + fileName);
             System.out.println("finished");
-            getStorage();
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
             logOut();
@@ -374,16 +372,6 @@ public class Network {
     public void getStorage() throws IOException {
         LOGGER.info("receiving file list from server");
         System.out.println("receiving file list from server");
-        byteBuffer.put(GET_STORAGE_CODE);
-        byteBuffer.flip();
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        LOGGER.info("Sending request for file list");
-        socketChannel.write(byteBuffer);
-        byteBuffer.clear();
         byte[] b = new byte[socketChannel.read(byteBuffer)];
         byteBuffer.flip();
         for (int i = 0; i < b.length; i++) {

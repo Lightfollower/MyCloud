@@ -39,6 +39,7 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         LOGGER.info("Handler here " + userName);
+        sendStorageToClient(ctx);
     }
 
     @Override
@@ -64,10 +65,12 @@ public class FileStorageHandler extends ChannelInboundHandlerAdapter {
             case DELETE_FILE_CODE:
                 receiveDataForSendFile();
                 fileManager.deleteFile(filename);
+                sendStorageToClient(ctx);
                 break;
             case RENAME_FILE_CODE:
                 receiveDataForRenameFile();
                 fileManager.renameFile(filename, newFileName);
+                sendStorageToClient(ctx);
                 break;
             case EXIT_CODE:
                 LOGGER.info("exit");
